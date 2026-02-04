@@ -16,18 +16,18 @@ Build a VS Code extension that enables semantic pattern-based search and replace
 ## Pre-Development Setup
 
 ### Repository Initialization
-- [ ] Create GitHub repository
-- [ ] Initialize git: `git init`
-- [ ] Create .gitignore for Node modules, .NET output, IDE files, dependencies
-- [ ] Add MIT License file
-- [ ] Create CONTRIBUTING.md guidelines
+- [x] Create GitHub repository
+- [x] Initialize git: `git init`
+- [x] Create .gitignore for Node modules, .NET output, IDE files, dependencies
+- [x] Add MIT License file
+- [x] Create CONTRIBUTING.md guidelines
 
 ### Development Environment
-- [ ] Install .NET 10 SDK
-- [ ] Install Node.js 20+ (LTS) and npm
-- [ ] Install VS Code
-- [ ] Clone repository
-- [ ] Verify all prerequisites
+- [x] Install .NET 10 SDK
+- [x] Install Node.js 20+ (LTS) and npm
+- [x] Install VS Code
+- [x] Clone repository
+- [x] Verify all prerequisites
 
 ---
 
