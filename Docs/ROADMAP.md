@@ -35,30 +35,30 @@ Build a VS Code extension that enables semantic pattern-based search and replace
 
 ### 1.1 Project Setup (Weeks 1-2)
 **Backend Setup Tasks:**
-- [ ] Create .NET console project: `dotnet new console -n SharpCodeSearch`
-- [ ] Create `src/backend/` directory structure
-- [ ] Add Roslyn NuGet packages:
+- [x] Create .NET console project: `dotnet new console -n SharpCodeSearch`
+- [x] Create `src/backend/` directory structure
+- [x] Add Roslyn NuGet packages:
   - Microsoft.CodeAnalysis
   - Microsoft.CodeAnalysis.CSharp
   - Microsoft.CodeAnalysis.Workspaces.MSBuild
-- [ ] Create folder structure: Services/, Models/, Roslyn/, Protocol/, Caching/
-- [ ] Set up Program.cs with CLI argument parsing
-- [ ] Verify build: `dotnet build`
+- [x] Create folder structure: Services/, Models/, Roslyn/, Protocol/, Caching/
+- [x] Set up Program.cs with CLI argument parsing
+- [x] Verify build: `dotnet build`
 
 **Extension Setup Tasks:**
-- [ ] Create VS Code extension: `npm init -y` in `src/extension/`
-- [ ] Install TypeScript dependencies
-- [ ] Configure tsconfig.json
-- [ ] Create package.json with extension manifest
-- [ ] Register initial commands (search, replace, catalog)
-- [ ] Create extension.ts entry point
-- [ ] Set up .vscodeignore
+- [x] Create VS Code extension: `npm init -y` in `src/extension/`
+- [x] Install TypeScript dependencies
+- [x] Configure tsconfig.json
+- [x] Create package.json with extension manifest
+- [x] Register initial commands (search, replace, catalog)
+- [x] Create extension.ts entry point
+- [x] Set up .vscodeignore
 
 **Build Configuration:**
-- [ ] Create .vscode/launch.json for backend debugging
-- [ ] Create .vscode/launch.json for extension debugging
-- [ ] Set up npm build scripts (compile, watch, pretest)
-- [ ] Verify F5 debug mode works
+- [x] Create .vscode/launch.json for backend debugging
+- [x] Create .vscode/launch.json for extension debugging
+- [x] Set up npm build scripts (compile, watch, pretest)
+- [x] Verify F5 debug mode works
 
 **Estimated Effort**: 3-4 days
 

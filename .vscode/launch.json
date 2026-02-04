@@ -1,0 +1,46 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/src/extension"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/src/extension/out/**/*.js"
+            ],
+            "preLaunchTask": "${defaultBuildTask}"
+        },
+        {
+            "name": "Debug Backend",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/backend/bin/Debug/net10.0/SharpCodeSearch.dll",
+            "args": [
+                "--pattern",
+                "$expr$",
+                "--output",
+                "json"
+            ],
+            "cwd": "${workspaceFolder}/src/backend",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Extension Tests",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/src/extension",
+                "--extensionTestsPath=${workspaceFolder}/src/extension/out/test/suite/index"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/src/extension/out/test/**/*.js"
+            ],
+            "preLaunchTask": "npm: pretest"
+        }
+    ]
+}
