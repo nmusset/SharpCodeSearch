@@ -241,7 +241,7 @@ MethodInvocation
 
 ### Backend (Analysis Engine)
 - **Language**: C# (native support for Roslyn)
-- **Framework**: .NET 8+ (cross-platform)
+- **Framework**: .NET 10+ (cross-platform)
 - **Core Dependencies**:
   - `Microsoft.CodeAnalysis` (Roslyn)
   - `Microsoft.CodeAnalysis.CSharp`
@@ -463,42 +463,42 @@ public $type:[System\\.Collections\\..+]$ $method$()
 ```
 ┌─────────────────────────────────────────────────────────┐
 │         VS Code Extension (TypeScript)                  │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │ Search Panel | Pattern Catalog | Commands      │   │
-│  └──────────────────────┬──────────────────────────┘   │
-└─────────────────────────┼──────────────────────────────┘
+│  ┌──────────────────────────────────────────────────┐   │
+│  │ Search Panel | Pattern Catalog | Commands        │   │
+│  └──────────────────────┬───────────────────────────┘   │
+└─────────────────────────┼───────────────────────────────┘
                           │ CLI/JSON
-         ┌────────────────▼──────────────┐
+         ┌────────────────▼───────────────┐
          │ Communication Layer            │
-         │ (Process Execution)           │
+         │ (Process Execution)            │
          └────────────────┬───────────────┘
                           │
-┌─────────────────────────┼──────────────────────────────┐
-│  .NET Backend (.NET 8+)│                              │
-│                        ▼                              │
-│  ┌────────────────────────────────────────────────┐  │
-│  │ Analysis Engine                                │  │
-│  │  • Pattern Parser                              │  │
-│  │  • Pattern Matcher                             │  │
-│  │  • Constraint Validator                        │  │
-│  │  • Workspace Scanner                           │  │
-│  │  • Replacement Engine                          │  │
-│  └────────────────────────────────────────────────┘  │
-│                        ▼                              │
-│  ┌────────────────────────────────────────────────┐  │
-│  │ Roslyn Integration Layer                       │  │
-│  │  • SyntaxTree Navigator                        │  │
-│  │  • SemanticModel Type Resolution               │  │
-│  │  • Compilation Manager                         │  │
-│  └────────────────────────────────────────────────┘  │
-│                        ▼                              │
-│  ┌────────────────────────────────────────────────┐  │
-│  │ Caching Layer                                  │  │
-│  │  • Pattern AST Cache                           │  │
-│  │  • Compilation Cache                           │  │
-│  │  • Result Cache (TTL-based)                    │  │
-│  └────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────┘
+┌─────────────────────────┼─────────────────────────────┐
+│  .NET Backend (.NET 10+)│                             │
+│                         ▼                             │
+│  ┌─────────────────────────────────────────────────┐  │
+│  │ Analysis Engine                                 │  │
+│  │  • Pattern Parser                               │  │
+│  │  • Pattern Matcher                              │  │
+│  │  • Constraint Validator                         │  │
+│  │  • Workspace Scanner                            │  │
+│  │  • Replacement Engine                           │  │
+│  └─────────────────────────────────────────────────┘  │
+│                         ▼                             │
+│  ┌─────────────────────────────────────────────────┐  │
+│  │ Roslyn Integration Layer                        │  │
+│  │  • SyntaxTree Navigator                         │  │
+│  │  • SemanticModel Type Resolution                │  │
+│  │  • Compilation Manager                          │  │
+│  └─────────────────────────────────────────────────┘  │
+│                         ▼                             │
+│  ┌─────────────────────────────────────────────────┐  │
+│  │ Caching Layer                                   │  │
+│  │  • Pattern AST Cache                            │  │
+│  │  • Compilation Cache                            │  │
+│  │  • Result Cache (TTL-based)                     │  │
+│  └─────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────┘
 ```
 
 ### Key Components

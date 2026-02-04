@@ -68,7 +68,7 @@ Results:
 │   VS Code Extension (TypeScript) │
 │   • UI Framework: Webviews       │
 │   • API: VS Code Extension API   │
-│   • Runtime: Node.js 16+         │
+│   • Runtime: Node.js 20 LTS      │
 └────────────────┬─────────────────┘
                  │
         ┌────────▼────────┐
@@ -77,7 +77,7 @@ Results:
         └────────┬────────┘
                  │
 ┌────────────────▼─────────────────┐
-│  .NET Backend (.NET 8+, C#)      │
+│  .NET Backend (.NET 10+, C#)     │
 │  • Pattern Parsing               │
 │  • AST Matching (Roslyn)         │
 │  • Constraint Validation         │
@@ -341,8 +341,8 @@ $args:0..∞$                // 0 or more (unlimited)
    - Check ROADMAP.md for project planning
 
 2. **Setup Development Environment**
-   - Install .NET 8 SDK
-   - Install Node.js 16+
+   - Install .NET 10 SDK
+   - Install Node.js 20 LTS
    - Install VS Code
    - Clone repository
 

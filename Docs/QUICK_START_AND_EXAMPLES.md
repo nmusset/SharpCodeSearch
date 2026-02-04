@@ -3,8 +3,8 @@
 ## Getting Started
 
 ### Prerequisites
-- .NET 8 SDK or later
-- Node.js 16+ and npm
+- .NET 10 SDK or later
+- Node.js 20+ (LTS) and npm
 - VS Code 1.80 or later
 - Git
 

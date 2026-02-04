@@ -23,8 +23,8 @@ Build a VS Code extension that enables semantic pattern-based search and replace
 - [ ] Create CONTRIBUTING.md guidelines
 
 ### Development Environment
-- [ ] Install .NET 8 SDK
-- [ ] Install Node.js 16+ and npm
+- [ ] Install .NET 10 SDK
+- [ ] Install Node.js 20+ (LTS) and npm
 - [ ] Install VS Code
 - [ ] Clone repository
 - [ ] Verify all prerequisites
