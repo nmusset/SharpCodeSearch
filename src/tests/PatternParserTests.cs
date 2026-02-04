@@ -1,4 +1,5 @@
 using SharpCodeSearch.Services;
+
 using Xunit;
 
 namespace SharpCodeSearch.Tests;
@@ -16,7 +17,7 @@ public class PatternParserTests
     public void Parse_SimpleText_CreatesTextNode()
     {
         var result = _parser.Parse("hello world");
-        
+
         Assert.Single(result.Nodes);
         var textNode = Assert.IsType<Models.TextNode>(result.Nodes[0]);
         Assert.Equal("hello world", textNode.Text);
@@ -26,7 +27,7 @@ public class PatternParserTests
     public void Parse_SimplePlaceholder_CreatesPlaceholderNode()
     {
         var result = _parser.Parse("$var$");
-        
+
         Assert.Single(result.Nodes);
         var placeholder = Assert.IsType<Models.PlaceholderNode>(result.Nodes[0]);
         Assert.Equal("var", placeholder.Name);
@@ -36,7 +37,7 @@ public class PatternParserTests
     public void Parse_TextAndPlaceholder_CreatesBothNodes()
     {
         var result = _parser.Parse("int $var$ = 0;");
-        
+
         Assert.Equal(3, result.Nodes.Count);
         Assert.IsType<Models.TextNode>(result.Nodes[0]);
         Assert.IsType<Models.PlaceholderNode>(result.Nodes[1]);
@@ -47,13 +48,13 @@ public class PatternParserTests
     public void Parse_MultiplePlaceholders_CreatesMultipleNodes()
     {
         var result = _parser.Parse("$obj$.$method$($args$)");
-        
+
         Assert.Equal(6, result.Nodes.Count);
         var obj = Assert.IsType<Models.PlaceholderNode>(result.Nodes[0]);
         var dot = Assert.IsType<Models.TextNode>(result.Nodes[1]);
         var method = Assert.IsType<Models.PlaceholderNode>(result.Nodes[2]);
         var args = Assert.IsType<Models.PlaceholderNode>(result.Nodes[4]);
-        
+
         Assert.Equal("obj", obj.Name);
         Assert.Equal(".", dot.Text);
         Assert.Equal("method", method.Name);
@@ -64,7 +65,7 @@ public class PatternParserTests
     public void Tokenize_SimpleText_ReturnsSingleToken()
     {
         var tokens = _parser.Tokenize("hello");
-        
+
         Assert.Single(tokens);
         Assert.Equal(TokenType.Text, tokens[0].Type);
         Assert.Equal("hello", tokens[0].Value);
@@ -74,7 +75,7 @@ public class PatternParserTests
     public void Tokenize_Placeholder_ReturnsSingleToken()
     {
         var tokens = _parser.Tokenize("$var$");
-        
+
         Assert.Single(tokens);
         Assert.Equal(TokenType.Placeholder, tokens[0].Type);
         Assert.Equal("var", tokens[0].Value);
@@ -92,7 +93,7 @@ public class PatternParserTests
     public void Tokenize_EmptyPlaceholder_ReturnsEmptyValue()
     {
         var tokens = _parser.Tokenize("$$");
-        
+
         Assert.Single(tokens);
         Assert.Equal(TokenType.Placeholder, tokens[0].Type);
         Assert.Empty(tokens[0].Value);
@@ -102,7 +103,7 @@ public class PatternParserTests
     public void Tokenize_PositionTracking_IsCorrect()
     {
         var tokens = _parser.Tokenize("int $var$ = 0");
-        
+
         Assert.Equal(0, tokens[0].Position);
         Assert.Equal(4, tokens[1].Position);
         Assert.Equal(9, tokens[2].Position);
@@ -112,7 +113,7 @@ public class PatternParserTests
     public void ValidatePattern_ValidPattern_ReturnsTrue()
     {
         var result = _parser.ValidatePattern("$obj$.ToString()");
-        
+
         Assert.True(result.IsValid);
         Assert.Empty(result.Errors);
     }
@@ -121,7 +122,7 @@ public class PatternParserTests
     public void ValidatePattern_EmptyPattern_ReturnsFalse()
     {
         var result = _parser.ValidatePattern("");
-        
+
         Assert.False(result.IsValid);
         Assert.Contains("Pattern cannot be empty", result.Errors);
     }
@@ -130,7 +131,7 @@ public class PatternParserTests
     public void ValidatePattern_UnclosedPlaceholder_ReturnsFalse()
     {
         var result = _parser.ValidatePattern("$var");
-        
+
         Assert.False(result.IsValid);
         Assert.Single(result.Errors);
     }
@@ -139,7 +140,7 @@ public class PatternParserTests
     public void ValidatePattern_WhitespacePattern_ReturnsFalse()
     {
         var result = _parser.ValidatePattern("   ");
-        
+
         Assert.False(result.IsValid);
         Assert.Contains("Pattern cannot be empty", result.Errors);
     }

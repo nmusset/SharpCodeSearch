@@ -39,7 +39,7 @@ class Program
         Console.WriteLine($"Pattern: {pattern}");
         Console.WriteLine($"File: {file ?? "workspace"}");
         Console.WriteLine($"Output format: {output}");
-        
+
         // TODO: Implement pattern matching logic
         Console.WriteLine("Pattern matching not yet implemented.");
 

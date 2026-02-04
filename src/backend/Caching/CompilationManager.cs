@@ -1,7 +1,7 @@
+using System.Collections.Concurrent;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
-
-using System.Collections.Concurrent;
 
 namespace SharpCodeSearch.Caching;
 

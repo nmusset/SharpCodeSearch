@@ -167,7 +167,7 @@ public class ExactMatchConstraint : IConstraint
     {
         if (IgnoreCase)
             return string.Equals(ExpectedValue, value, StringComparison.OrdinalIgnoreCase);
-        
+
         return string.Equals(ExpectedValue, value, StringComparison.Ordinal);
     }
 

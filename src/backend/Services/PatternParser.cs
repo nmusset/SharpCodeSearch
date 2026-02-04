@@ -136,7 +136,7 @@ public class PatternParser
         try
         {
             var tokens = Tokenize(pattern);
-            
+
             // Check for empty placeholders
             foreach (var token in tokens.Where(t => t.Type == TokenType.Placeholder))
             {
@@ -148,7 +148,7 @@ public class PatternParser
 
             // Try to parse
             var ast = Parse(pattern);
-            
+
             // Validate placeholders
             foreach (var node in ast.Nodes.OfType<Models.PlaceholderNode>())
             {
@@ -180,7 +180,7 @@ public class PatternParser
     private Models.PlaceholderNode ParsePlaceholder(Token token)
     {
         var content = token.Value;
-        
+
         // For now, simple parsing: just use the placeholder name
         // Later we can add constraint parsing like: $var:type(int)$
         var name = content.Trim();
