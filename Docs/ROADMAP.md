@@ -74,23 +74,23 @@ Build a VS Code extension that enables semantic pattern-based search and replace
 ### 1.2 Roslyn Integration & Pattern Parser (Weeks 2-3)
 
 **Roslyn Integration Tasks:**
-- [ ] Create `RoslynHelper.cs`:
+- [x] Create `RoslynHelper.cs`:
   - LoadWorkspace(workspacePath) - Load .csproj
   - BuildCompilation(projectPath) - Create Compilation
   - GetSyntaxTrees(compilation) - Get all trees
   - EnumerateNodes(syntaxNode) - DFS traversal
   - Unit tests for each function
-- [ ] Create `CompilationManager.cs`:
+- [x] Create `CompilationManager.cs`:
   - Cache compiled projects
   - Check for file modifications
   - Handle compilation errors
 
 **Pattern Parser Tasks:**
-- [ ] Create pattern AST classes:
+- [x] Create pattern AST classes:
   - PatternNode (abstract), TextNode, PlaceholderNode
   - PlaceholderType enum
   - Constraint classes
-- [ ] Create `PatternParser.cs`:
+- [x] Create `PatternParser.cs`:
   - Parse(pattern) → PatternAst
   - Tokenize(pattern) → List<Token>
   - ValidatePattern(pattern)

@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/SharpCodeSearch.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SharpCodeSearch.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -275,6 +275,13 @@ What would you like to proceed with?
 - Keep success criteria clear and measurable
 - Update time estimates based on actual progress
 
+### Git Commands
+- **ALWAYS run git commands from the workspace root directory** (not from subdirectories)
+- Before running `git add`, `git commit`, or `git status`, navigate to the repository root
+- Use: `cd C:\Users\MUSSET\source\repos\Misc\SharpCodeSearch` (or equivalent root path)
+- This ensures all changes (backend, tests, docs, etc.) are included in commits
+- Running git from subdirectories will only stage/commit files in that subdirectory
+
 ---
 
 ## 🆘 When Things Go Wrong
