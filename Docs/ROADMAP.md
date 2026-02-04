@@ -110,28 +110,28 @@ Build a VS Code extension that enables semantic pattern-based search and replace
 ### 1.3 Basic Pattern Matching Algorithm (Weeks 3-4)
 
 **Expression & Identifier Matching Tasks:**
-- [ ] Create `PatternMatcher.cs`:
+- [x] Create `PatternMatcher.cs`:
   - FindMatches(pattern, codeNode, semanticModel)
   - MatchNode(patternNode, codeNode) - Core algorithm
   - Handle nested nodes recursively
   - Extract placeholder values
-- [ ] Implement matching for:
+- [x] Implement matching for:
   - BinaryExpression nodes
   - InvocationExpression nodes
   - Identifier nodes
-- [ ] Add 30+ unit tests for basic patterns
+- [x] Add 30+ unit tests for basic patterns
 
 **Constraint Validation Tasks:**
-- [ ] Create `ConstraintValidator.cs`:
+- [x] Create `ConstraintValidator.cs`:
   - ValidateTypeConstraint()
   - ValidateRegexConstraint()
   - ValidateCountConstraint()
   - Add 20+ unit tests
 
 **CLI Enhancement:**
-- [ ] Test on basic patterns: `$expr$`, `$obj$.ToString()`, `$method$($args$)`
-- [ ] Parse pattern strings into AST
-- [ ] Match against C# code
+- [ ] ~~Test on basic patterns: `$expr$`, `$obj$.ToString()`, `$method$($args$)`~~ (Deferred to Phase 1.4)
+- [x] Parse pattern strings into AST
+- [x] Match against C# code
 
 **Estimated Effort**: 6-8 days
 
@@ -139,7 +139,7 @@ Build a VS Code extension that enables semantic pattern-based search and replace
 - ✅ Matches simple method calls
 - ✅ Extracts identifiers correctly
 - ✅ Regex constraints work
-- ✅ Test pass rate > 90%
+- ✅ Test pass rate > 90% (142/142 = 100%)
 
 ---
 
