@@ -36,23 +36,32 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
-function activate(context) {
+const BackendService_1 = require("./BackendService");
+const SearchCommand_1 = require("./SearchCommand");
+async function activate(context) {
     console.log('Sharp Code Search extension is now active');
-    // Register search command
-    const searchCommand = vscode.commands.registerCommand('sharpCodeSearch.search', () => {
-        vscode.window.showInformationMessage('Sharp Code Search: Search command (not yet implemented)');
-    });
-    // Register replace command
+    // Initialize backend service
+    const backendService = new BackendService_1.BackendService(context);
+    // Verify backend is available
+    const backendAvailable = await backendService.verifyBackend();
+    if (!backendAvailable) {
+        vscode.window.showWarningMessage('Sharp Code Search: Backend not found. Some features may not work. Please ensure the extension is properly built.');
+    }
+    // Register search command with the new webview implementation
+    const searchCommand = (0, SearchCommand_1.registerSearchCommand)(context, backendService);
+    // Register replace command (placeholder for now)
     const replaceCommand = vscode.commands.registerCommand('sharpCodeSearch.replace', () => {
         vscode.window.showInformationMessage('Sharp Code Search: Replace command (not yet implemented)');
     });
-    // Register pattern catalog command
+    // Register pattern catalog command (placeholder for now)
     const catalogCommand = vscode.commands.registerCommand('sharpCodeSearch.catalog', () => {
         vscode.window.showInformationMessage('Sharp Code Search: Pattern Catalog command (not yet implemented)');
     });
     context.subscriptions.push(searchCommand, replaceCommand, catalogCommand);
+    console.log('Sharp Code Search: All commands registered successfully');
 }
 function deactivate() {
     // Cleanup if needed
+    console.log('Sharp Code Search extension is being deactivated');
 }
 //# sourceMappingURL=extension.js.map

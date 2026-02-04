@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src {{cspSource}} 'unsafe-inline'; script-src {{cspSource}} 'unsafe-inline';">
+    <link rel="stylesheet" href="{{cssUri}}">
+    <title>Sharp Code Search</title>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Search Input Section -->
+        <div class="search-section">
+            <h2>Pattern Search</h2>
+            <div class="input-group">
+                <label for="pattern-input">Pattern:</label>
+                <textarea id="pattern-input" class="pattern-input"
+                    placeholder="Enter search pattern (e.g., $obj$.ToString())" rows="3" spellcheck="false"></textarea>
+                <div class="input-help">
+                    <span class="help-icon" title="Pattern Syntax Help">?</span>
+                    <span class="help-text">Use $name$ for placeholders. Examples: $expr$, $obj$.Method($args$)</span>
+                </div>
+            </div>
+
+            <div class="options-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="match-case" checked>
+                    <span>Match case</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="whole-word">
+                    <span>Whole word</span>
+                </label>
+            </div>
+
+            <div class="button-group">
+                <button id="search-button" class="primary-button">
+                    <span class="button-icon">🔍</span>
+                    Search
+                </button>
+                <button id="clear-button" class="secondary-button">
+                    Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section">
+            <div class="results-header">
+                <h3>Results</h3>
+                <span id="results-count" class="results-count">0 matches</span>
+            </div>
+
+            <div id="status-message" class="status-message hidden"></div>
+
+            <div id="results-container" class="results-container">
+                <div class="empty-state">
+                    <span class="empty-icon">🔍</span>
+                    <p>Enter a pattern and click Search</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Details Panel -->
+        <div id="details-panel" class="details-panel hidden">
+            <div class="details-header">
+                <h3>Match Details</h3>
+                <button id="close-details" class="close-button">×</button>
+            </div>
+            <div id="details-content" class="details-content">
+                <!-- Details will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{{scriptUri}}"></script>
+</body>
+
+</html>

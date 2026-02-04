@@ -2,10 +2,12 @@
 .vscode-test-web/**
 **/node_modules
 **/*.map
-out/**
-dist/**
 src/**
 tsconfig.json
 .eslintrc.json
 **/.eslintrc.json
 **/*.vsix
+
+# Include output and webview
+!out/**
+!webview/**

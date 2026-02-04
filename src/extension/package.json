@@ -8,25 +8,48 @@
     "vscode": "^1.95.0"
   },
   "categories": [
+    "Programming Languages",
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:csharp",
+    "workspaceContains:**/*.cs"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "sharpCodeSearch.search",
-        "title": "Sharp Code Search: Search"
+        "title": "Sharp Code Search: Search",
+        "icon": "$(search)"
       },
       {
         "command": "sharpCodeSearch.replace",
-        "title": "Sharp Code Search: Replace"
+        "title": "Sharp Code Search: Replace",
+        "icon": "$(replace)"
       },
       {
         "command": "sharpCodeSearch.catalog",
-        "title": "Sharp Code Search: Pattern Catalog"
+        "title": "Sharp Code Search: Pattern Catalog",
+        "icon": "$(book)"
       }
-    ]
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "sharpCodeSearch.search",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "sharpCodeSearch.replace",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "sharpCodeSearch.catalog",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

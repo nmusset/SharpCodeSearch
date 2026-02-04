@@ -146,38 +146,38 @@ Build a VS Code extension that enables semantic pattern-based search and replace
 ### 1.4 Extension UI & Integration (Weeks 4-5)
 
 **Webview UI Tasks:**
-- [ ] Create search.html:
+- [x] Create search.html:
   - Pattern input with syntax highlighting
   - Search button and options
   - Results area with tree view
   - Result details panel
-- [ ] Create search.css:
+- [x] Create search.css:
   - VS Code theme support
   - Responsive layout
   - Result list styling
-- [ ] Create search.js:
+- [x] Create search.js:
   - Input validation
   - Search button click handler
   - Result click navigation
 
 **Backend Service Layer:**
-- [ ] Create `BackendService.ts`:
+- [x] Create `BackendService.ts`:
   - Execute backend CLI
   - Parse JSON results
   - Error handling
-- [ ] Create `SearchCommand.ts`:
+- [x] Create `SearchCommand.ts`:
   - Get pattern from user
   - Call backend service
   - Display results
 
 **Extension Integration:**
-- [ ] Update extension.ts:
+- [x] Update extension.ts:
   - Register search command
   - Create search panel
   - Wire up event handlers
-- [ ] Manual testing in VS Code
-- [ ] Verify commands in palette
-- [ ] Test result navigation
+- [x] Manual testing in VS Code
+- [x] Verify commands in palette
+- [x] Test result navigation
 
 **Estimated Effort**: 4-5 days
 
