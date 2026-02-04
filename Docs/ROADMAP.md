@@ -13,192 +13,214 @@ Build a VS Code extension that enables semantic pattern-based search and replace
 
 ---
 
+## Pre-Development Setup
+
+### Repository Initialization
+- [ ] Create GitHub repository
+- [ ] Initialize git: `git init`
+- [ ] Create .gitignore for Node modules, .NET output, IDE files, dependencies
+- [ ] Add MIT License file
+- [ ] Create CONTRIBUTING.md guidelines
+
+### Development Environment
+- [ ] Install .NET 8 SDK
+- [ ] Install Node.js 16+ and npm
+- [ ] Install VS Code
+- [ ] Clone repository
+- [ ] Verify all prerequisites
+
+---
+
 ## Phase 1: Foundation & Prototyping (Weeks 1-6)
 
-### 1.1 Project Setup
-**Deliverables:**
-- [ ] VS Code extension project scaffolding
-  - TypeScript configuration
-  - Build and packaging setup
-  - Extension manifest (package.json)
-  
-- [ ] .NET backend project setup
-  - C# project structure
-  - Roslyn dependencies configured
-  - Basic project build verification
+### 1.1 Project Setup (Weeks 1-2)
+**Backend Setup Tasks:**
+- [ ] Create .NET console project: `dotnet new console -n SharpCodeSearch`
+- [ ] Create `src/backend/` directory structure
+- [ ] Add Roslyn NuGet packages:
+  - Microsoft.CodeAnalysis
+  - Microsoft.CodeAnalysis.CSharp
+  - Microsoft.CodeAnalysis.Workspaces.MSBuild
+- [ ] Create folder structure: Services/, Models/, Roslyn/, Protocol/, Caching/
+- [ ] Set up Program.cs with CLI argument parsing
+- [ ] Verify build: `dotnet build`
 
-**Tasks:**
-```
-- Create extension folder structure
-- Initialize npm package with vscode extension dependencies
-- Create .NET console or library project
-- Set up build scripts (npm, dotnet)
-- Configure TypeScript compilation
-- Set up basic debugging configuration
-```
+**Extension Setup Tasks:**
+- [ ] Create VS Code extension: `npm init -y` in `src/extension/`
+- [ ] Install TypeScript dependencies
+- [ ] Configure tsconfig.json
+- [ ] Create package.json with extension manifest
+- [ ] Register initial commands (search, replace, catalog)
+- [ ] Create extension.ts entry point
+- [ ] Set up .vscodeignore
+
+**Build Configuration:**
+- [ ] Create .vscode/launch.json for backend debugging
+- [ ] Create .vscode/launch.json for extension debugging
+- [ ] Set up npm build scripts (compile, watch, pretest)
+- [ ] Verify F5 debug mode works
 
 **Estimated Effort**: 3-4 days
 
 **Success Criteria:**
-- Extension can be launched in VS Code debug mode
-- Backend compiles without errors
-- Both components can communicate (stdin/stdout or API)
+- ✅ VS Code extension scaffolding complete
+- ✅ .NET backend project set up
+- ✅ TypeScript compilation working
+- ✅ Both components build independently
+- ✅ Debug configurations functional
 
 ---
 
-### 1.2 Roslyn Integration & Pattern Parser
+### 1.2 Roslyn Integration & Pattern Parser (Weeks 2-3)
 
-**Deliverables:**
-- [ ] Basic Roslyn syntax tree analysis
-  - Load C# source files
-  - Parse into SyntaxTree
-  - Traverse AST
+**Roslyn Integration Tasks:**
+- [ ] Create `RoslynHelper.cs`:
+  - LoadWorkspace(workspacePath) - Load .csproj
+  - BuildCompilation(projectPath) - Create Compilation
+  - GetSyntaxTrees(compilation) - Get all trees
+  - EnumerateNodes(syntaxNode) - DFS traversal
+  - Unit tests for each function
+- [ ] Create `CompilationManager.cs`:
+  - Cache compiled projects
+  - Check for file modifications
+  - Handle compilation errors
 
-- [ ] Pattern query parser
-  - Parse simple placeholder syntax ($var$)
-  - Handle basic constraints
-  - Error reporting for invalid patterns
-
-- [ ] CLI prototype
-  - Command: `sharpsearch search <pattern> <filepath>`
-  - Returns JSON with matches
-  - Basic error handling
-
-**Tasks:**
-```
-- Research Roslyn API in depth
-  - SyntaxTree vs. SemanticModel usage
-  - Walker/Visitor pattern implementation
-  - Symbol resolution
-
-- Implement pattern parser
-  - Tokenize pattern string
-  - Build internal pattern representation
-  - Validate placeholder consistency
-
-- Create simple CLI
-  - Accept command-line arguments
-  - Load and parse C# file
-  - Print results to stdout as JSON
-
-- Unit tests for parser
-  - Valid pattern recognition
-  - Error detection
-  - Edge cases
-```
+**Pattern Parser Tasks:**
+- [ ] Create pattern AST classes:
+  - PatternNode (abstract), TextNode, PlaceholderNode
+  - PlaceholderType enum
+  - Constraint classes
+- [ ] Create `PatternParser.cs`:
+  - Parse(pattern) → PatternAst
+  - Tokenize(pattern) → List<Token>
+  - ValidatePattern(pattern)
+  - Error reporting with position info
+  - 20+ unit tests
 
 **Estimated Effort**: 5-7 days
 
 **Success Criteria:**
-- Can parse C# files with Roslyn
-- Simple CLI works: `sharpsearch search "$obj$.ToString()" sample.cs`
-- Returns matches with line/column information
+- ✅ Can load and parse C# projects with Roslyn
+- ✅ Can traverse syntax trees
+- ✅ Pattern parser works for simple patterns
+- ✅ 90%+ test coverage for parser
 
 ---
 
-### 1.3 Basic Pattern Matching Algorithm
+### 1.3 Basic Pattern Matching Algorithm (Weeks 3-4)
 
-**Deliverables:**
-- [ ] Expression matching
-  - Match simple expressions with placeholders
-  - Handle operators correctly
-  
-- [ ] Identifier matching
-  - Match any identifier
-  - Store identifier names for extraction
+**Expression & Identifier Matching Tasks:**
+- [ ] Create `PatternMatcher.cs`:
+  - FindMatches(pattern, codeNode, semanticModel)
+  - MatchNode(patternNode, codeNode) - Core algorithm
+  - Handle nested nodes recursively
+  - Extract placeholder values
+- [ ] Implement matching for:
+  - BinaryExpression nodes
+  - InvocationExpression nodes
+  - Identifier nodes
+- [ ] Add 30+ unit tests for basic patterns
 
-- [ ] Simple constraint support
-  - Basic type constraints
-  - Identifier regex patterns
+**Constraint Validation Tasks:**
+- [ ] Create `ConstraintValidator.cs`:
+  - ValidateTypeConstraint()
+  - ValidateRegexConstraint()
+  - ValidateCountConstraint()
+  - Add 20+ unit tests
 
-**Tasks:**
-```
-- Design matching algorithm
-  - Compare SyntaxNode types
-  - Handle wildcard placeholders
-  - Extract captured values
-
-- Implement expression matcher
-  - Match BinaryExpression nodes
-  - Match InvocationExpression nodes
-  - Handle nesting
-
-- Implement identifier matcher
-  - Regex constraint validation
-  - Capture identifier values
-
-- Test on basic patterns
-  - Pattern: $expr$ + $expr$
-  - Pattern: $obj$.ToString()
-  - Pattern: $method$($args$)
-
-- Create test suite
-  - Valid matches
-  - Non-matches
-  - Edge cases
-```
+**CLI Enhancement:**
+- [ ] Test on basic patterns: `$expr$`, `$obj$.ToString()`, `$method$($args$)`
+- [ ] Parse pattern strings into AST
+- [ ] Match against C# code
 
 **Estimated Effort**: 6-8 days
 
 **Success Criteria:**
-- Matches simple method calls: `obj.Method()`
-- Extracts identifiers correctly
-- Regex constraints work for identifier patterns
-- Test pass rate > 90%
+- ✅ Matches simple method calls
+- ✅ Extracts identifiers correctly
+- ✅ Regex constraints work
+- ✅ Test pass rate > 90%
 
 ---
 
-### 1.4 Extension UI Skeleton
+### 1.4 Extension UI & Integration (Weeks 4-5)
 
-**Deliverables:**
-- [ ] Search UI panel in VS Code
-  - Search box for pattern input
-  - Results display area
-  - Basic styling
+**Webview UI Tasks:**
+- [ ] Create search.html:
+  - Pattern input with syntax highlighting
+  - Search button and options
+  - Results area with tree view
+  - Result details panel
+- [ ] Create search.css:
+  - VS Code theme support
+  - Responsive layout
+  - Result list styling
+- [ ] Create search.js:
+  - Input validation
+  - Search button click handler
+  - Result click navigation
 
-- [ ] Command registration
-  - "SharpSearch: Open Search" command
-  - "SharpSearch: Search Pattern" command
-  - Keyboard shortcut registration
+**Backend Service Layer:**
+- [ ] Create `BackendService.ts`:
+  - Execute backend CLI
+  - Parse JSON results
+  - Error handling
+- [ ] Create `SearchCommand.ts`:
+  - Get pattern from user
+  - Call backend service
+  - Display results
 
-**Tasks:**
-```
-- Create webview for search interface
-  - HTML for search form
-  - Basic CSS styling
-  - JavaScript event handlers
-
-- Implement VS Code commands
-  - Command palette registration
-  - Shortcut binding
-  - Focus management
-
-- Set up result display
-  - List view for matches
-  - Click-to-navigate functionality
-  - Context display
-
-- Package for marketplace
-  - Icon and README
-  - Basic documentation
-```
+**Extension Integration:**
+- [ ] Update extension.ts:
+  - Register search command
+  - Create search panel
+  - Wire up event handlers
+- [ ] Manual testing in VS Code
+- [ ] Verify commands in palette
+- [ ] Test result navigation
 
 **Estimated Effort**: 4-5 days
 
 **Success Criteria:**
-- Extension can be installed and run
-- Search UI opens in sidebar
-- Commands appear in command palette
-- Can invoke backend from UI
+- ✅ Search panel opens in sidebar
+- ✅ Pattern input works
+- ✅ Results display in list
+- ✅ Can navigate to results
+- ✅ Commands in command palette
 
 ---
 
-### Phase 1 Completion Criteria
-- ✅ CLI prototype functional with basic patterns
+### 1.5 Integration Testing & Completion (Weeks 5-6)
+
+**Integration Testing:**
+- [ ] Create integration tests:
+  - Full search workflow
+  - Pattern + code matching
+  - Result validation
+- [ ] Create extension tests:
+  - Command registration
+  - Backend service calls
+  - UI interactions
+
+**Documentation:**
+- [ ] Update README with setup instructions
+- [ ] Add basic usage examples
+- [ ] Document created files
+
+**Phase 1 Verification:**
+- [ ] All components build successfully
+- [ ] Basic end-to-end search works
+- [ ] CLI and UI both functional
+- [ ] 100+ passing tests
+- [ ] No critical errors
+
+**Phase 1 Deliverable Checklist:**
+- ✅ CLI prototype functional
 - ✅ Extension scaffolding complete
 - ✅ UI skeleton working
-- ✅ All components can communicate
-- ✅ Basic documentation in README
+- ✅ All components communicating
+- ✅ Basic patterns working
+- ✅ Test coverage >80%
 
 ---
 
@@ -989,8 +1011,60 @@ Build a VS Code extension that enables semantic pattern-based search and replace
    - Build system integration
    - CI/CD pipeline integration
 
+## Testing & Quality Strategy
+
+### Unit Tests
+- Parser tests: 50+ tests covering tokenization, AST building, validation
+- Matcher tests: 60+ tests covering all placeholder types and constraints
+- Constraint tests: 30+ tests for type, regex, count validation
+- Utility tests: 20+ tests for helpers and edge cases
+- **Target: 160+ tests with >90% code coverage**
+
+### Integration Tests
+- End-to-end search: 10+ tests on real patterns
+- Search + replace: 10+ tests covering transformations
+- Pattern catalog: 5+ tests for save/load/delete
+- UI workflows: 10+ tests for user interactions
+
+### Manual Testing
+- Real projects: 100+ files, 1000+ files, 10000+ files
+- Large file handling: 10MB+ files
+- Complex generic types
+- Various Roslyn patterns
+
+### Performance Testing
+- Pattern parsing: <10ms
+- Single file search: <50ms
+- 1000-file search: <5s (target)
+- Memory profiling and optimization
+
 ---
 
-## Conclusion
+## Quality Gates (Before Release)
+
+### Code Quality
+- ✅ Code coverage >90%
+- ✅ No critical static analysis issues
+- ✅ Consistent code style (linters passing)
+- ✅ All tests passing
+
+### Performance
+- ✅ Pattern parsing: <10ms
+- ✅ Single file search: <50ms
+- ✅ 1000-file search: <5s
+- ✅ Memory: <500MB typical
+
+### Security
+- ✅ Input validation at boundaries
+- ✅ Safe file operations
+- ✅ Dependency scan: no critical CVEs
+
+### User Experience
+- ✅ Clear error messages
+- ✅ Intuitive UI
+- ✅ Quick response feedback
+- ✅ Helpful documentation
+
+---
 
 This roadmap provides a structured path to building a professional-grade semantic code search tool for C#. By following this phased approach, the project can deliver incremental value while maintaining quality and sustainability. Regular checkpoints and user feedback should inform any adjustments to the timeline or feature set.

@@ -456,6 +456,90 @@ public $type:[System\\.Collections\\..+]$ $method$()
 
 ---
 
+## System Architecture Overview
+
+### High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│         VS Code Extension (TypeScript)                  │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Search Panel | Pattern Catalog | Commands      │   │
+│  └──────────────────────┬──────────────────────────┘   │
+└─────────────────────────┼──────────────────────────────┘
+                          │ CLI/JSON
+         ┌────────────────▼──────────────┐
+         │ Communication Layer            │
+         │ (Process Execution)           │
+         └────────────────┬───────────────┘
+                          │
+┌─────────────────────────┼──────────────────────────────┐
+│  .NET Backend (.NET 8+)│                              │
+│                        ▼                              │
+│  ┌────────────────────────────────────────────────┐  │
+│  │ Analysis Engine                                │  │
+│  │  • Pattern Parser                              │  │
+│  │  • Pattern Matcher                             │  │
+│  │  • Constraint Validator                        │  │
+│  │  • Workspace Scanner                           │  │
+│  │  • Replacement Engine                          │  │
+│  └────────────────────────────────────────────────┘  │
+│                        ▼                              │
+│  ┌────────────────────────────────────────────────┐  │
+│  │ Roslyn Integration Layer                       │  │
+│  │  • SyntaxTree Navigator                        │  │
+│  │  • SemanticModel Type Resolution               │  │
+│  │  • Compilation Manager                         │  │
+│  └────────────────────────────────────────────────┘  │
+│                        ▼                              │
+│  ┌────────────────────────────────────────────────┐  │
+│  │ Caching Layer                                  │  │
+│  │  • Pattern AST Cache                           │  │
+│  │  • Compilation Cache                           │  │
+│  │  • Result Cache (TTL-based)                    │  │
+│  └────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘
+```
+
+### Key Components
+
+**Frontend (VS Code Extension)**
+- Pattern input UI in sidebar
+- Results display with navigation
+- Pattern catalog management
+- Keyboard shortcuts and commands
+
+**Backend (Analysis Engine)**
+- Pattern parser: Converts pattern strings to AST
+- Pattern matcher: Core matching algorithm
+- Constraint validator: Type/regex/count validation
+- Workspace scanner: Multi-file project discovery
+- Replacement engine: Code transformation
+
+**Communication**
+- CLI-based for MVP (process execution)
+- JSON protocol for requests/responses
+- Future: Language Server Protocol for better performance
+
+### Data Flow: Search Operation
+
+```
+1. User enters pattern → Extension validates
+2. Extension calls backend: SharpCodeSearch.exe search --pattern "..." --workspace "..."
+3. Backend:
+   - Parses pattern into AST
+   - Scans workspace for C# files
+   - Builds Roslyn compilation
+   - Matches pattern against each file
+   - Validates constraints
+   - Collects results
+4. Backend returns JSON with matches
+5. Extension displays results in panel
+6. User clicks result → Navigate to file and highlight
+```
+
+---
+
 ## Conclusion
 
 Creating a semantic code search tool for C# in VS Code is an ambitious but achievable project. The combination of mature technologies (Roslyn, VS Code API) and clear reference implementations (ReSharper) provides a solid foundation. The main challenges lie in performance optimization, pattern language design clarity, and user experience. Following a phased approach will allow for incremental value delivery and community feedback.
