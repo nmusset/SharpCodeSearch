@@ -52,7 +52,27 @@ class Program
 ```
 
 ### Expected Result
-Finds all 3 `Console.WriteLine` calls and extracts the arguments.
+Finds all 3 `Console.WriteLine` calls and extracts the arguments:
+```
+Found 3 match(es):
+
+test.cs:7:9
+  Console.WriteLine("Hello World")
+  Placeholders:
+    arg = "Hello World"
+
+test.cs:8:9
+  Console.WriteLine("Debug info")
+  Placeholders:
+    arg = "Debug info"
+
+test.cs:10:9
+  Console.WriteLine(message)
+  Placeholders:
+    arg = message
+```
+
+**Note**: Both `Console.WriteLine($arg$)` and `WriteLine($arg$)` work.
 
 ---
 
@@ -205,6 +225,8 @@ dotnet run -- --pattern 'Console.WriteLine($msg$)' --file App.cs
 }
 ```
 
+**Note**: Argument placeholders capture the arguments without parentheses.
+
 ---
 
 ## Example 7: Find Binary Expressions
@@ -255,7 +277,11 @@ class StringOps
 ```
 
 ### Expected Result
-Finds the two `string.Format` calls.
+Finds the two `string.Format` calls:
+- Match 1: `args = "Hello {0}", name`
+- Match 2: `args = "Value: {0}, {1}", x, y`
+
+**Note**: Multiple arguments are captured as comma-separated values without the surrounding parentheses.
 
 ---
 
