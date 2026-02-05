@@ -348,7 +348,7 @@ public class ProgressInfo
 }
 
 /// <summary>
-/// JSON-based progress reporter that writes to stdout.
+/// JSON-based progress reporter that writes to stderr.
 /// </summary>
 public class JsonProgressReporter : IProgressReporter
 {
@@ -366,6 +366,7 @@ public class JsonProgressReporter : IProgressReporter
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
-        Console.WriteLine(json);
+        // Write progress to stderr to avoid corrupting JSON output on stdout
+        Console.Error.WriteLine(json);
     }
 }

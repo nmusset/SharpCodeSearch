@@ -250,7 +250,7 @@ body {
     margin-bottom: var(--spacing-small);
     border: 1px solid var(--vscode-panel-border);
     border-radius: var(--border-radius);
-    cursor: pointer;
+    cursor: default;
     transition: all var(--transition-speed);
 }
 
@@ -269,13 +269,38 @@ body {
     font-weight: 600;
     color: var(--vscode-textLink-foreground);
     margin-bottom: 4px;
+    margin-right: 12px;
     font-size: 0.95em;
+    display: inline-block;
+}
+
+.result-file.clickable {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+}
+
+.result-file.clickable:hover {
+    text-decoration-style: solid;
+    color: var(--vscode-textLink-activeForeground);
 }
 
 .result-location {
     font-size: 0.85em;
     color: var(--vscode-descriptionForeground);
     margin-bottom: 4px;
+    display: inline-block;
+}
+
+.result-location.clickable {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+}
+
+.result-location.clickable:hover {
+    text-decoration-style: solid;
+    color: var(--vscode-textLink-activeForeground);
 }
 
 .result-code {

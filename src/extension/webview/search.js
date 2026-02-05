@@ -162,11 +162,11 @@
         item.dataset.index = index;
 
         const fileElement = document.createElement('div');
-        fileElement.className = 'result-file';
+        fileElement.className = 'result-file clickable';
         fileElement.textContent = result.file || 'Unknown file';
 
         const locationElement = document.createElement('div');
-        locationElement.className = 'result-location';
+        locationElement.className = 'result-location clickable';
         locationElement.textContent = `Line ${result.line || '?'}, Column ${result.column || '?'}`;
 
         const codeElement = document.createElement('div');
@@ -177,8 +177,22 @@
         item.appendChild(locationElement);
         item.appendChild(codeElement);
 
-        // Add click handler
-        item.addEventListener('click', () => handleResultClick(index));
+        // Click on item shows details without navigation
+        item.addEventListener('click', (e) => {
+            // Only handle if not clicking on a clickable link
+            if (!e.target.classList.contains('clickable')) {
+                selectResult(index);
+                showDetails(result);
+            }
+        });
+
+        // Click on file or location navigates to source
+        const navigateHandler = (e) => {
+            e.stopPropagation();
+            handleResultClick(index);
+        };
+        fileElement.addEventListener('click', navigateHandler);
+        locationElement.addEventListener('click', navigateHandler);
 
         return item;
     }

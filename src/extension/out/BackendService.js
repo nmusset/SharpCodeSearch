@@ -96,16 +96,16 @@ class BackendService {
      */
     async executeBackend(pattern, options) {
         const args = [
-            '--pattern', `"${this.escapeArgument(pattern)}"`,
+            '--pattern', this.quoteArgument(pattern),
             '--output', 'json'
         ];
-        // Add workspace/file option
+        // Add workspace option for workspace-level search
         if (this.workspacePath) {
-            args.push('--file', `"${this.escapeArgument(this.workspacePath)}"`);
+            args.push('--workspace', this.quoteArgument(this.workspacePath));
         }
         // Add additional options
         if (options.filePattern) {
-            args.push('--file-pattern', `"${this.escapeArgument(options.filePattern)}"`);
+            args.push('--file-filter', this.quoteArgument(options.filePattern));
         }
         // Build command
         let command;
@@ -142,6 +142,9 @@ class BackendService {
             if (Array.isArray(data)) {
                 return data.map(this.normalizeResult);
             }
+            else if (data.matches && Array.isArray(data.matches)) {
+                return data.matches.map(this.normalizeResult);
+            }
             else if (data.results && Array.isArray(data.results)) {
                 return data.results.map(this.normalizeResult);
             }
@@ -164,8 +167,8 @@ class BackendService {
             file: result.file || result.File || result.filePath || '',
             line: parseInt(result.line || result.Line || result.lineNumber || '1'),
             column: parseInt(result.column || result.Column || result.columnNumber || '1'),
-            code: result.code || result.Code || result.snippet || '',
-            matchedText: result.matchedText || result.MatchedText || result.match || '',
+            code: result.code || result.Code || result.matchedCode || result.snippet || '',
+            matchedText: result.matchedText || result.MatchedText || result.match || result.matchedCode || '',
             placeholders: result.placeholders || result.Placeholders || {}
         };
     }
@@ -207,11 +210,15 @@ class BackendService {
         }
     }
     /**
-     * Escape command line argument
+     * Quote a command line argument for safe passing to shell
      */
-    escapeArgument(arg) {
-        // Escape double quotes and backslashes
-        return arg.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    quoteArgument(arg) {
+        // If argument contains spaces or special characters, wrap in quotes
+        // Escape any double quotes inside the argument
+        if (arg.includes(' ') || arg.includes('"') || arg.includes('$')) {
+            return `"${arg.replace(/"/g, '\\"')}"`;
+        }
+        return arg;
     }
     /**
      * Verify backend is available
