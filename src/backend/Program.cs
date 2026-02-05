@@ -2,17 +2,24 @@
 
 using Microsoft.CodeAnalysis.CSharp;
 
+using SharpCodeSearch.Caching;
 using SharpCodeSearch.Services;
+using SharpCodeSearch.Workspace;
 
 namespace SharpCodeSearch;
 
 class Program
 {
-    static int Main(string[] args)
+    static async Task<int> Main(string[] args)
     {
         string? pattern = null;
         string? file = null;
+        string? workspace = null;
+        string? projectFilter = null;
+        string? fileFilter = null;
+        string? folderFilter = null;
         string output = "json";
+        int maxParallelism = Environment.ProcessorCount;
 
         // Simple CLI argument parsing
         for (int i = 0; i < args.Length; i++)
@@ -24,6 +31,22 @@ class Program
                     break;
                 case "--file" when i + 1 < args.Length:
                     file = args[++i];
+                    break;
+                case "--workspace" when i + 1 < args.Length:
+                    workspace = args[++i];
+                    break;
+                case "--project-filter" when i + 1 < args.Length:
+                    projectFilter = args[++i];
+                    break;
+                case "--file-filter" when i + 1 < args.Length:
+                    fileFilter = args[++i];
+                    break;
+                case "--folder-filter" when i + 1 < args.Length:
+                    folderFilter = args[++i];
+                    break;
+                case "--max-parallelism" when i + 1 < args.Length:
+                    if (int.TryParse(args[++i], out var parallelism))
+                        maxParallelism = parallelism;
                     break;
                 case "--output" when i + 1 < args.Length:
                     output = args[++i];
@@ -45,7 +68,8 @@ class Program
         try
         {
             // Execute the search
-            var results = ExecuteSearch(pattern, file);
+            var results = await ExecuteSearchAsync(pattern, file, workspace,
+                projectFilter, fileFilter, folderFilter, maxParallelism);
 
             // Output results
             if (output.Equals("json", StringComparison.OrdinalIgnoreCase))
@@ -66,7 +90,14 @@ class Program
         }
     }
 
-    static List<SearchResult> ExecuteSearch(string pattern, string? file)
+    static async Task<List<SearchResult>> ExecuteSearchAsync(
+        string pattern,
+        string? file,
+        string? workspace,
+        string? projectFilter,
+        string? fileFilter,
+        string? folderFilter,
+        int maxParallelism)
     {
         // Parse the pattern
         var parser = new PatternParser();
@@ -104,8 +135,48 @@ class Program
         }
         else
         {
-            // TODO: Implement workspace-level search
-            throw new NotImplementedException("Workspace-level search not yet implemented. Please specify a file with --file");
+            // Workspace-level search
+            var workspacePath = workspace ?? Directory.GetCurrentDirectory();
+
+            var compilationManager = new CompilationManager();
+            var progressReporter = new JsonProgressReporter();
+            var workspaceMatcher = new WorkspaceMatcher(compilationManager, progressReporter);
+
+            var options = new WorkspaceSearchOptions
+            {
+                ProjectFilter = projectFilter,
+                FileFilter = fileFilter,
+                FolderFilter = folderFilter,
+                MaxDegreeOfParallelism = maxParallelism
+            };
+
+            var searchResult = await workspaceMatcher.SearchWorkspaceAsync(
+                patternAst,
+                workspacePath,
+                options);
+
+            foreach (var match in searchResult.Matches)
+            {
+                var lineSpan = match.Location.GetLineSpan();
+                results.Add(new SearchResult
+                {
+                    FilePath = match.FilePath,
+                    Line = lineSpan.StartLinePosition.Line + 1,
+                    Column = lineSpan.StartLinePosition.Character + 1,
+                    MatchedCode = match.Node.ToString(),
+                    Placeholders = match.Placeholders
+                });
+            }
+
+            // Report any errors
+            if (searchResult.Errors.Any())
+            {
+                Console.Error.WriteLine($"Encountered {searchResult.Errors.Count} error(s) during search:");
+                foreach (var error in searchResult.Errors)
+                {
+                    Console.Error.WriteLine($"  [{error.ErrorType}] {error.FilePath}: {error.Message}");
+                }
+            }
         }
 
         return results;
@@ -154,17 +225,28 @@ class Program
         Console.WriteLine("SharpCodeSearch - Semantic pattern matching for C# code");
         Console.WriteLine();
         Console.WriteLine("Usage:");
-        Console.WriteLine("  SharpCodeSearch --pattern <pattern> [--file <file>] [--output <format>]");
+        Console.WriteLine("  SharpCodeSearch --pattern <pattern> [options]");
         Console.WriteLine();
         Console.WriteLine("Options:");
-        Console.WriteLine("  --pattern <pattern>    The search pattern to match against C# code (required)");
-        Console.WriteLine("  --file <file>          The C# file to search (optional, will scan workspace if not provided)");
-        Console.WriteLine("  --output <format>      Output format: json|text (default: json)");
-        Console.WriteLine("  --help, -h             Show this help message");
+        Console.WriteLine("  --pattern <pattern>           The search pattern to match against C# code (required)");
+        Console.WriteLine("  --file <file>                 Search in a single C# file");
+        Console.WriteLine("  --workspace <path>            Search entire workspace (default: current directory)");
+        Console.WriteLine("  --project-filter <pattern>    Filter projects (e.g., \"*.Tests.csproj\")");
+        Console.WriteLine("  --file-filter <pattern>       Filter files (e.g., \"*Controller.cs\")");
+        Console.WriteLine("  --folder-filter <name>        Filter by folder path (e.g., \"Controllers\")");
+        Console.WriteLine("  --max-parallelism <n>         Max parallel tasks (default: CPU count)");
+        Console.WriteLine("  --output <format>             Output format: json|text (default: json)");
+        Console.WriteLine("  --help, -h                    Show this help message");
         Console.WriteLine();
         Console.WriteLine("Examples:");
+        Console.WriteLine("  # Search a single file");
         Console.WriteLine("  SharpCodeSearch --pattern \"Console.WriteLine($arg$)\" --file Program.cs");
-        Console.WriteLine("  SharpCodeSearch --pattern \"$x$ + $y$\" --file Calculator.cs --output text");
+        Console.WriteLine();
+        Console.WriteLine("  # Search entire workspace");
+        Console.WriteLine("  SharpCodeSearch --pattern \"$x$ + $y$\" --workspace .");
+        Console.WriteLine();
+        Console.WriteLine("  # Search with filters");
+        Console.WriteLine("  SharpCodeSearch --pattern \"$method$($args$)\" --folder-filter \"Controllers\"");
     }
 }
 

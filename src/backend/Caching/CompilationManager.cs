@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Xml.Linq;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.MSBuild;
 
 namespace SharpCodeSearch.Caching;
@@ -59,6 +61,16 @@ public class CompilationManager
 
         try
         {
+            // Try simple compilation first (faster and more reliable)
+            var simpleResult = await BuildSimpleCompilationAsync(projectPath);
+            if (simpleResult.Compilation != null)
+            {
+                return simpleResult;
+            }
+
+            // Fall back to MSBuildWorkspace if simple compilation fails
+            errors.AddRange(simpleResult.Errors);
+
             var workspace = MSBuildWorkspace.Create();
             workspace.RegisterWorkspaceFailedHandler((args) =>
             {
@@ -106,6 +118,141 @@ public class CompilationManager
             errors.Add($"Exception building compilation: {ex.Message}");
             return new CompilationResult { Compilation = null, IsFromCache = false, Errors = errors };
         }
+    }
+
+    /// <summary>
+    /// Builds a simple compilation by parsing source files directly.
+    /// This is faster and more reliable than MSBuildWorkspace for pattern matching.
+    /// </summary>
+    private async Task<CompilationResult> BuildSimpleCompilationAsync(string projectPath)
+    {
+        var errors = new List<string>();
+
+        try
+        {
+            // Parse project file to get source files
+            var projectDir = Path.GetDirectoryName(projectPath) ?? "";
+            var sourceFiles = GetSourceFilesFromProject(projectPath);
+
+            if (!sourceFiles.Any())
+            {
+                errors.Add("No source files found in project");
+                return new CompilationResult { Compilation = null, IsFromCache = false, Errors = errors };
+            }
+
+            // Parse all source files
+            var syntaxTrees = new List<SyntaxTree>();
+            foreach (var sourceFile in sourceFiles)
+            {
+                var fullPath = Path.IsPathRooted(sourceFile)
+                    ? sourceFile
+                    : Path.Combine(projectDir, sourceFile);
+
+                if (File.Exists(fullPath))
+                {
+                    var code = await File.ReadAllTextAsync(fullPath);
+                    var tree = CSharpSyntaxTree.ParseText(code, path: fullPath);
+                    syntaxTrees.Add(tree);
+                }
+            }
+
+            if (!syntaxTrees.Any())
+            {
+                errors.Add("No valid source files could be parsed");
+                return new CompilationResult { Compilation = null, IsFromCache = false, Errors = errors };
+            }
+
+            // Create a simple compilation
+            var projectName = Path.GetFileNameWithoutExtension(projectPath);
+            var compilation = CSharpCompilation.Create(
+                projectName,
+                syntaxTrees,
+                references: GetBasicReferences(),
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+            // Cache the compilation
+            var cached = new CachedCompilation
+            {
+                Compilation = compilation,
+                Timestamp = DateTime.UtcNow,
+                Errors = errors
+            };
+
+            _compilationCache[projectPath] = cached;
+
+            return new CompilationResult
+            {
+                Compilation = compilation,
+                IsFromCache = false,
+                Errors = errors
+            };
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Simple compilation failed: {ex.Message}");
+            return new CompilationResult { Compilation = null, IsFromCache = false, Errors = errors };
+        }
+    }
+
+    /// <summary>
+    /// Gets source files from a project file.
+    /// </summary>
+    private List<string> GetSourceFilesFromProject(string projectPath)
+    {
+        var files = new List<string>();
+        var projectDir = Path.GetDirectoryName(projectPath) ?? "";
+
+        try
+        {
+            var doc = XDocument.Load(projectPath);
+            var ns = doc.Root?.Name.Namespace;
+
+            // Look for explicit Compile items
+            var compileElements = doc.Descendants()
+                .Where(e => e.Name.LocalName == "Compile" && e.Attribute("Include") != null);
+
+            foreach (var element in compileElements)
+            {
+                var include = element.Attribute("Include")?.Value;
+                if (!string.IsNullOrEmpty(include))
+                {
+                    files.Add(include);
+                }
+            }
+
+            // If no explicit Compile items, use default SDK behavior (all .cs files)
+            if (!files.Any())
+            {
+                files.AddRange(Directory.EnumerateFiles(projectDir, "*.cs", SearchOption.AllDirectories)
+                    .Where(f => !f.Contains("\\obj\\") && !f.Contains("\\bin\\")));
+            }
+        }
+        catch
+        {
+            // Fall back to simple directory scan
+            files.AddRange(Directory.EnumerateFiles(projectDir, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !f.Contains("\\obj\\") && !f.Contains("\\bin\\")));
+        }
+
+        return files;
+    }
+
+    /// <summary>
+    /// Gets basic framework references for compilation.
+    /// </summary>
+    private IEnumerable<MetadataReference> GetBasicReferences()
+    {
+        var assemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location) ?? "";
+
+        return new[]
+        {
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Runtime.dll")),
+            MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Console.dll")),
+            MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Collections.dll")),
+            MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Linq.dll")),
+            MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "netstandard.dll"))
+        }.Where(r => File.Exists(r.FilePath));
     }
 
     /// <summary>

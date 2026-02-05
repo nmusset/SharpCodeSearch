@@ -194,9 +194,56 @@ int temperature = 20;     // ✓ (var name starts with "temp")
 var result = 30;          // ✗ (var name doesn't match)
 ```
 
+### Example 5: Workspace Search
+
+**Search entire workspace:**
+```powershell
+# Find all Console.WriteLine calls in the workspace
+dotnet run --project src/backend -- --pattern 'Console.WriteLine($arg$)' --workspace . --output text
+
+# Find all method calls in test files only
+dotnet run --project src/backend -- --pattern '$method$($args$)' --file-filter '*Tests.cs'
+
+# Find patterns in specific folder
+dotnet run --project src/backend -- --pattern '$type$ $field$;' --folder-filter 'Services'
+
+# Control parallelism for large projects
+dotnet run --project src/backend -- --pattern '$var$' --max-parallelism 4
+```
+
+**Progress reporting:**
+When searching a workspace, SharpCodeSearch reports progress as JSON to stdout:
+```json
+{"type":"progress","stage":"scanning","message":"Scanning workspace for projects..."}
+{"type":"progress","stage":"loading","message":"Loading 2 project(s)..."}
+{"type":"progress","stage":"searching","message":"Searching... 10/22 files","totalFiles":22,"processedFiles":10}
+{"type":"progress","stage":"complete","message":"Search complete. Found 34 match(es)."}
+```
+
 ---
 
-## 🏗️ Project Structure
+## 🔧 CLI Reference
+
+### Command-Line Options
+
+```
+SharpCodeSearch --pattern <pattern> [options]
+
+Options:
+  --pattern <pattern>           Search pattern (required)
+  --file <file>                 Search in a single C# file
+  --workspace <path>            Search entire workspace (default: current directory)
+  --project-filter <pattern>    Filter projects (e.g., "*.Tests.csproj")
+  --file-filter <pattern>       Filter files (e.g., "*Controller.cs")
+  --folder-filter <name>        Filter by folder path (e.g., "Controllers")
+  --max-parallelism <n>         Max parallel tasks (default: CPU count)
+  --output <format>             Output format: json|text (default: json)
+  --help, -h                    Show help message
+```
+
+---
+
+## 🎯 Advanced Usage Examples
 
 ```
 SharpCodeSearch/
@@ -284,8 +331,7 @@ For more detailed information, see:
 
 ## 🎯 Current Status
 
-**Phase 1 Complete** ✅
-
+**Phase 1 Complete** ✅ (January 2026)
 - ✅ CLI prototype functional
 - ✅ Extension scaffolding complete
 - ✅ Pattern parser working
@@ -295,11 +341,29 @@ For more detailed information, see:
 - ✅ 142 unit & integration tests passing
 - ✅ Test coverage >80%
 
-**Next Steps: Phase 2**
-- Full placeholder type support (statements, arguments, types)
-- Workspace-level search
+**Phase 2.1 Complete** ✅ (February 4, 2026)
+- ✅ Statement placeholder support ($stmt$)
+- ✅ Argument placeholder support ($args$)
+- ✅ Type placeholder support ($type$)
+- ✅ Expression placeholder enhancements
+- ✅ 186 unit tests passing
+
+**Phase 2.2 Complete** ✅ (February 5, 2026)
+- ✅ Workspace-level search across multiple projects
+- ✅ Parallel processing with Parallel.ForEachAsync
+- ✅ Progress reporting with JSON streaming
+- ✅ Multi-project support
+- ✅ Filtering by project, file, and folder
+- ✅ 11 integration tests passing
+- ✅ Simple compilation without MSBuildWorkspace
+
+**Total Test Coverage: 197 tests passing** ✅
+
+**Next Steps: Phase 2.3**
 - Search & replace functionality
-- Pattern catalog system
+- Replace pattern syntax
+- Preview and batch replacement
+- Undo support
 
 ---
 
