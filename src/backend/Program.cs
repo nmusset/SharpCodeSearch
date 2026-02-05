@@ -1,4 +1,10 @@
-﻿namespace SharpCodeSearch;
+﻿using System.Text.Json;
+
+using Microsoft.CodeAnalysis.CSharp;
+
+using SharpCodeSearch.Services;
+
+namespace SharpCodeSearch;
 
 class Program
 {
@@ -36,14 +42,111 @@ class Program
             return 1;
         }
 
-        Console.WriteLine($"Pattern: {pattern}");
-        Console.WriteLine($"File: {file ?? "workspace"}");
-        Console.WriteLine($"Output format: {output}");
+        try
+        {
+            // Execute the search
+            var results = ExecuteSearch(pattern, file);
 
-        // TODO: Implement pattern matching logic
-        Console.WriteLine("Pattern matching not yet implemented.");
+            // Output results
+            if (output.Equals("json", StringComparison.OrdinalIgnoreCase))
+            {
+                OutputJson(results);
+            }
+            else
+            {
+                OutputText(results);
+            }
 
-        return 0;
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error: {ex.Message}");
+            return 1;
+        }
+    }
+
+    static List<SearchResult> ExecuteSearch(string pattern, string? file)
+    {
+        // Parse the pattern
+        var parser = new PatternParser();
+        var patternAst = parser.Parse(pattern);
+
+        var results = new List<SearchResult>();
+
+        if (file != null)
+        {
+            // Search in a single file
+            if (!File.Exists(file))
+            {
+                throw new FileNotFoundException($"File not found: {file}");
+            }
+
+            var code = File.ReadAllText(file);
+            var syntaxTree = CSharpSyntaxTree.ParseText(code, path: file);
+            var root = syntaxTree.GetRoot();
+
+            var matcher = new PatternMatcher();
+            var matches = matcher.FindMatches(patternAst, root);
+
+            foreach (var match in matches)
+            {
+                var lineSpan = match.Location.GetLineSpan();
+                results.Add(new SearchResult
+                {
+                    FilePath = file,
+                    Line = lineSpan.StartLinePosition.Line + 1,
+                    Column = lineSpan.StartLinePosition.Character + 1,
+                    MatchedCode = match.Node.ToString(),
+                    Placeholders = match.Placeholders
+                });
+            }
+        }
+        else
+        {
+            // TODO: Implement workspace-level search
+            throw new NotImplementedException("Workspace-level search not yet implemented. Please specify a file with --file");
+        }
+
+        return results;
+    }
+
+    static void OutputJson(List<SearchResult> results)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var json = JsonSerializer.Serialize(new
+        {
+            matchCount = results.Count,
+            matches = results
+        }, options);
+
+        Console.WriteLine(json);
+    }
+
+    static void OutputText(List<SearchResult> results)
+    {
+        Console.WriteLine($"Found {results.Count} match(es):");
+        Console.WriteLine();
+
+        foreach (var result in results)
+        {
+            Console.WriteLine($"{result.FilePath}:{result.Line}:{result.Column}");
+            Console.WriteLine($"  {result.MatchedCode}");
+            if (result.Placeholders.Any())
+            {
+                Console.WriteLine("  Placeholders:");
+                foreach (var kvp in result.Placeholders)
+                {
+                    Console.WriteLine($"    {kvp.Key} = {kvp.Value}");
+                }
+            }
+            Console.WriteLine();
+        }
     }
 
     static void PrintHelp()
@@ -58,5 +161,18 @@ class Program
         Console.WriteLine("  --file <file>          The C# file to search (optional, will scan workspace if not provided)");
         Console.WriteLine("  --output <format>      Output format: json|text (default: json)");
         Console.WriteLine("  --help, -h             Show this help message");
+        Console.WriteLine();
+        Console.WriteLine("Examples:");
+        Console.WriteLine("  SharpCodeSearch --pattern \"Console.WriteLine($arg$)\" --file Program.cs");
+        Console.WriteLine("  SharpCodeSearch --pattern \"$x$ + $y$\" --file Calculator.cs --output text");
     }
+}
+
+class SearchResult
+{
+    public required string FilePath { get; init; }
+    public int Line { get; init; }
+    public int Column { get; init; }
+    public required string MatchedCode { get; init; }
+    public Dictionary<string, string> Placeholders { get; init; } = new();
 }
