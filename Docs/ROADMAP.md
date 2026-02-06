@@ -238,7 +238,8 @@ Build a VS Code extension that enables semantic pattern-based search and replace
 - ✅ 2.2 Workspace-Level Search - COMPLETE (Feb 5, 2026)
 - ⏸️ 2.3 Search & Replace Functionality - Not Started
 - ⏸️ 2.4 Pattern Catalog & Management - Not Started
-- ⏸️ 2.5 Integration Testing & Documentation - Not Started
+- ⏸️ 2.5 Advanced Features (Deferred Items) - Not Started
+- ⏸️ 2.6 Integration Testing & Documentation - Not Started
 
 ### 2.1 Full Placeholder Type Support
 
@@ -558,7 +559,80 @@ SharpCodeSearch --pattern '$pattern$' --max-parallelism 4
 
 ---
 
-### 2.5 Integration Testing & Documentation
+### 2.5 Advanced Features (Deferred Items)
+
+**Overview:**
+This phase implements advanced features that were deferred from Phase 2.1 and 2.2 to maintain momentum. These enhancements expand pattern matching capabilities and optimize workspace search performance.
+
+**Deliverables:**
+
+- [ ] Advanced Type Matching ✅ (Phase 2.1 deferred - 10 tests)
+  - Generic type argument matching (List<$type$>, Dictionary<$k$, $v$>)
+  - Array type matching ($type$[], $type$[,])
+  - Nullable type matching ($type$?)
+  - Standalone type placeholders 
+  - Cast expression types (($type$)value)
+  - Tuple type matching (($type$, $type$))
+
+- [ ] Advanced Expression Matching ✅ (Phase 2.1 deferred - 18 tests)
+  - Text-based expression patterns without placeholders (e.g., a + b, x * 2)
+  - Complex placeholder extraction in composite expressions ($expr$ + 10)
+  - Semantic equivalence matching (++x ≈ x++)
+  - Operator precedence in pattern matching
+  - Assignment/ternary/lambda pattern matching with text patterns
+
+- [ ] Workspace Search Optimization ⏸️ (Phase 2.2 deferred)
+  - Benchmark on large codebases (>1000 files)
+  - Memory usage profiling and optimization
+  - .gitignore support for faster scanning
+  - Performance optimization through caching improvements
+
+**Tasks:**
+```
+- Implement advanced type matching
+  - Add generic type argument parsing to PatternParser
+  - Handle generic constraints in TypeMatchin logic
+  - Add array rank matching ($type$[,])
+  - Support nullable type syntax
+  - Implement tuple type matching
+  - Add unit tests (10 tests)
+
+- Implement advanced expression matching
+  - Parser support for text-based expressions in patterns
+  - Extend PatternMatcher for complex expressions
+  - Add semantic equivalence detection
+  - Operator precedence handling in patterns
+  - Add unit tests (18 tests)
+
+- Performance optimization
+  - Profile on large codebases (1000+ files)
+  - Optimize compilation caching 
+  - Implement incremental analysis
+  - Add .gitignore support to WorkspaceScanner
+
+- Testing & validation
+  - All deferred unit tests passing
+  - Benchmark results documented
+  - Performance regression tests
+```
+
+**Estimated Effort**: 5-7 days
+
+**Success Criteria:**
+- All 28 deferred tests passing (10 type + 18 expression)
+- Advanced patterns work on real codebases
+- Large workspace searches perform well (>1000 files)
+- Memory usage reasonable under load
+- .gitignore support improves scan speed
+
+**Implementation Order:**
+1. Advanced type matching (simpler, foundational)
+2. Advanced expression matching (more complex)
+3. Workspace optimization (perf work)
+
+---
+
+### 2.6 Integration Testing & Documentation
 
 **Deliverables:**
 - [ ] Comprehensive test suite
