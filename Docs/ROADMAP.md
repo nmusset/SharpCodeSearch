@@ -572,7 +572,6 @@ SharpCodeSearch --pattern 'Debug.WriteLine($msg$)' --replace '// removed' --file
 - Uses position-descending sort for multiple replacements in same file
 - Proper UTF-8 encoding handling for file I/O
 - All tests passing (215/254, 39 skipped for Phase 2.1 limitations)
-- Git commit: 8546b40 ("feat: Phase 2.3 Part 2 - File modification and CLI integration")
 
 ---
 

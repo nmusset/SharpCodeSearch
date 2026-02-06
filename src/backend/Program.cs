@@ -101,10 +101,17 @@ class Program
                     );
                 }
 
-                // Output replacement results
+                // Output replacement/application results
                 if (apply && applicationResults != null)
                 {
-                    OutputApplicationResults(applicationResults);
+                    if (output.Equals("json", StringComparison.OrdinalIgnoreCase))
+                    {
+                        OutputApplicationJson(applicationResults);
+                    }
+                    else
+                    {
+                        OutputApplicationResults(applicationResults);
+                    }
                 }
                 else if (output.Equals("json", StringComparison.OrdinalIgnoreCase))
                 {
@@ -412,6 +419,26 @@ class Program
                 Console.WriteLine($"✗ {result.FilePath}: {result.Error}");
             }
         }
+    }
+
+    static void OutputApplicationJson(List<ReplacementApplicationResult> results)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var json = JsonSerializer.Serialize(new
+        {
+            applicationsCount = results.Count,
+            successCount = results.Count(r => r.Success),
+            errorCount = results.Count(r => !r.Success),
+            totalReplacementsApplied = results.Sum(r => r.ReplacementsApplied),
+            results = results
+        }, options);
+
+        Console.WriteLine(json);
     }
 
     static void OutputJson(List<SearchResult> results)

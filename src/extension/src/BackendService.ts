@@ -20,6 +20,22 @@ export interface SearchResult {
     placeholders?: Record<string, string>;
 }
 
+export interface ReplacementResult {
+    filePath: string;
+    line: number;
+    column: number;
+    originalCode: string;
+    replacementCode: string;
+    placeholders?: Record<string, string>;
+}
+
+export interface ApplicationResult {
+    filePath: string;
+    replacementsApplied: number;
+    success: boolean;
+    error?: string;
+}
+
 export interface BackendError {
     message: string;
     details?: string;
@@ -83,6 +99,38 @@ export class BackendService {
     }
 
     /**
+     * Execute search and replace (preview mode - no files are modified)
+     */
+    async searchAndReplace(pattern: string, replacePattern: string, options: SearchOptions = {}): Promise<ReplacementResult[]> {
+        if (!this.workspacePath) {
+            throw new Error('No workspace folder is open. Please open a C# project first.');
+        }
+
+        try {
+            const output = await this.executeSearchAndReplaceBackend(pattern, replacePattern, options, false);
+            return this.parseReplacementResults(output);
+        } catch (error) {
+            throw this.createBackendError(error);
+        }
+    }
+
+    /**
+     * Apply replacements to files (actually modifies files)
+     */
+    async applyReplacements(pattern: string, replacePattern: string, options: SearchOptions = {}): Promise<ApplicationResult[]> {
+        if (!this.workspacePath) {
+            throw new Error('No workspace folder is open. Please open a C# project first.');
+        }
+
+        try {
+            const output = await this.executeSearchAndReplaceBackend(pattern, replacePattern, options, true);
+            return this.parseApplicationResults(output);
+        } catch (error) {
+            throw this.createBackendError(error);
+        }
+    }
+
+    /**
      * Execute the backend CLI with the given pattern
      */
     private async executeBackend(pattern: string, options: SearchOptions): Promise<string> {
@@ -115,6 +163,55 @@ export class BackendService {
         const { stdout, stderr } = await execAsync(command, {
             cwd: this.workspacePath,
             timeout: 60000, // 60 second timeout
+            maxBuffer: 10 * 1024 * 1024 // 10MB buffer
+        });
+
+        if (stderr) {
+            console.error('Backend stderr:', stderr);
+        }
+
+        return stdout;
+    }
+
+    /**
+     * Execute backend with search and replace pattern (preview or apply)
+     */
+    private async executeSearchAndReplaceBackend(pattern: string, replacePattern: string, options: SearchOptions, apply: boolean): Promise<string> {
+        const args = [
+            '--pattern', this.quoteArgument(pattern),
+            '--replace', this.quoteArgument(replacePattern),
+            '--output', 'json'
+        ];
+
+        // Add apply flag if requested
+        if (apply) {
+            args.push('--apply');
+        }
+
+        // Add workspace option for workspace-level search
+        if (this.workspacePath) {
+            args.push('--workspace', this.quoteArgument(this.workspacePath));
+        }
+
+        // Add additional options
+        if (options.filePattern) {
+            args.push('--file-filter', this.quoteArgument(options.filePattern));
+        }
+
+        // Build command
+        let command: string;
+        if (process.platform === 'win32' && this.backendPath.endsWith('.exe')) {
+            command = `"${this.backendPath}" ${args.join(' ')}`;
+        } else {
+            // Use dotnet to run the .dll
+            const dllPath = this.backendPath.replace('.exe', '.dll');
+            command = `dotnet "${dllPath}" ${args.join(' ')}`;
+        }
+
+        // Execute with timeout
+        const { stdout, stderr } = await execAsync(command, {
+            cwd: this.workspacePath,
+            timeout: 120000, // 120 second timeout for replacements
             maxBuffer: 10 * 1024 * 1024 // 10MB buffer
         });
 
@@ -166,6 +263,88 @@ export class BackendService {
             code: result.code || result.Code || result.matchedCode || result.snippet || '',
             matchedText: result.matchedText || result.MatchedText || result.match || result.matchedCode || '',
             placeholders: result.placeholders || result.Placeholders || {}
+        };
+    }
+
+    /**
+     * Parse replacement results from JSON output
+     */
+    private parseReplacementResults(output: string): ReplacementResult[] {
+        if (!output || output.trim().length === 0) {
+            return [];
+        }
+
+        try {
+            const data = JSON.parse(output);
+
+            // Handle different response formats
+            if (Array.isArray(data)) {
+                return data.map(this.normalizeReplacementResult);
+            } else if (data.replacements && Array.isArray(data.replacements)) {
+                return data.replacements.map(this.normalizeReplacementResult);
+            } else if (data.results && Array.isArray(data.results)) {
+                return data.results.map(this.normalizeReplacementResult);
+            } else {
+                console.warn('Unexpected backend output format:', data);
+                return [];
+            }
+        } catch (error) {
+            console.warn('Failed to parse replacement results:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Normalize a single replacement result object
+     */
+    private normalizeReplacementResult(result: any): ReplacementResult {
+        return {
+            filePath: result.filePath || result.FilePath || result.file || '',
+            line: parseInt(result.line || result.Line || result.lineNumber || '1'),
+            column: parseInt(result.column || result.Column || result.columnNumber || '1'),
+            originalCode: result.originalCode || result.OriginalCode || '',
+            replacementCode: result.replacementCode || result.ReplacementCode || '',
+            placeholders: result.placeholders || result.Placeholders || {}
+        };
+    }
+
+    /**
+     * Parse application results from backend output
+     */
+    private parseApplicationResults(output: string): ApplicationResult[] {
+        if (!output || output.trim().length === 0) {
+            return [];
+        }
+
+        try {
+            const data = JSON.parse(output);
+
+            // Handle different response formats
+            if (Array.isArray(data)) {
+                return data.map(this.normalizeApplicationResult);
+            } else if (data.applicationResults && Array.isArray(data.applicationResults)) {
+                return data.applicationResults.map(this.normalizeApplicationResult);
+            } else if (data.results && Array.isArray(data.results)) {
+                return data.results.map(this.normalizeApplicationResult);
+            } else {
+                console.warn('Unexpected application results format:', data);
+                return [];
+            }
+        } catch (error) {
+            console.warn('Failed to parse application results:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Normalize a single application result object
+     */
+    private normalizeApplicationResult(result: any): ApplicationResult {
+        return {
+            filePath: result.filePath || result.FilePath || '',
+            replacementsApplied: parseInt(result.replacementsApplied || result.ReplacementsApplied || '0'),
+            success: result.success !== false && !result.error,
+            error: result.error || result.Error || undefined
         };
     }
 

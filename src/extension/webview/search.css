@@ -385,6 +385,120 @@ body {
     overflow-x: auto;
 }
 
+/* Success Button (Apply) */
+.success-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: var(--vscode-font-size);
+    font-family: var(--vscode-font-family);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-small);
+    transition: all var(--transition-speed);
+    background-color: var(--vscode-testing-runAction);
+    color: var(--vscode-button-foreground);
+}
+
+.success-button:hover {
+    background-color: var(--vscode-testing-runAction);
+    opacity: 0.8;
+}
+
+.success-button:active {
+    transform: scale(0.98);
+}
+
+.success-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Results Mode Selector */
+.results-mode-selector {
+    display: flex;
+    gap: var(--spacing-small);
+    margin-bottom: var(--spacing-medium);
+    border-bottom: 1px solid var(--vscode-panel-border);
+    padding-bottom: var(--spacing-small);
+}
+
+.results-mode-selector.hidden {
+    display: none;
+}
+
+.mode-button {
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: var(--border-radius);
+    background: none;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: all var(--transition-speed);
+}
+
+.mode-button:hover {
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.mode-button.active {
+    color: var(--vscode-foreground);
+    border-bottom: 2px solid var(--vscode-textLink-foreground);
+}
+
+/* Replacement Comparison View */
+.result-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-small);
+    margin-bottom: var(--spacing-small);
+}
+
+.comparison-column {
+    flex: 1;
+}
+
+.comparison-title {
+    font-weight: 600;
+    font-size: 0.85em;
+    padding: 4px 8px;
+    border-radius: var(--border-radius);
+    margin-bottom: 4px;
+}
+
+.comparison-title.original {
+    background-color: var(--vscode-editorError-background);
+    color: var(--vscode-editorError-foreground);
+}
+
+.comparison-title.replacement {
+    background-color: var(--vscode-gitDecoration-addedResourceForeground);
+    color: var(--vscode-editor-background);
+}
+
+.comparison-code {
+    font-family: var(--vscode-editor-font-family);
+    font-size: 0.85em;
+    background-color: var(--vscode-textCodeBlock-background);
+    padding: var(--spacing-small);
+    border-radius: 3px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border: 1px solid var(--vscode-panel-border);
+}
+
+.comparison-code.original {
+    border-left: 3px solid var(--vscode-editorError-foreground);
+}
+
+.comparison-code.replacement {
+    border-left: 3px solid var(--vscode-gitDecoration-addedResourceForeground);
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 10px;

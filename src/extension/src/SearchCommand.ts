@@ -68,6 +68,12 @@ export class SearchPanel {
             case 'search':
                 await this._handleSearch(message.pattern, message.options);
                 break;
+            case 'preview':
+                await this._handlePreview(message.pattern, message.replacePattern, message.options);
+                break;
+            case 'apply':
+                await this._handleApply(message.pattern, message.replacePattern, message.options);
+                break;
             case 'navigateToMatch':
                 await this._navigateToMatch(message.file, message.line, message.column);
                 break;
@@ -112,6 +118,87 @@ export class SearchPanel {
             // Show error notification
             vscode.window.showErrorMessage(
                 `Search failed: ${error.message || String(error)}`
+            );
+        }
+    }
+
+    /**
+     * Handle preview request (search and replace without applying)
+     */
+    private async _handlePreview(pattern: string, replacePattern: string, options: any) {
+        try {
+            // Execute search and replace (preview mode)
+            const results = await this._backendService.searchAndReplace(pattern, replacePattern, options);
+
+            // Send results back to webview
+            this._panel.webview.postMessage({
+                type: 'replacementResults',
+                results: results
+            });
+
+            // Show notification
+            if (results.length > 0) {
+                vscode.window.showInformationMessage(
+                    `Preview: ${results.length} replacement${results.length === 1 ? '' : 's'}`
+                );
+            }
+        } catch (error: any) {
+            console.error('Preview error:', error);
+
+            // Send error to webview
+            this._panel.webview.postMessage({
+                type: 'replacementError',
+                error: error.message || String(error)
+            });
+
+            // Show error notification
+            vscode.window.showErrorMessage(
+                `Preview failed: ${error.message || String(error)}`
+            );
+        }
+    }
+
+    /**
+     * Handle apply request (execute replacements on files)
+     */
+    private async _handleApply(pattern: string, replacePattern: string, options: any) {
+        try {
+            // Execute replacements (apply mode)
+            const results = await this._backendService.applyReplacements(pattern, replacePattern, options);
+
+            // Send results back to webview
+            this._panel.webview.postMessage({
+                type: 'applicationResults',
+                results: results
+            });
+
+            // Show notification
+            const successCount = results.filter((r: any) => r.success).length;
+            const errorCount = results.filter((r: any) => !r.success).length;
+            
+            if (successCount > 0) {
+                vscode.window.showInformationMessage(
+                    `Applied ${successCount} replacement${successCount === 1 ? '' : 's'}${errorCount > 0 ? `, ${errorCount} error${errorCount === 1 ? '' : 's'}` : ''}`
+                );
+            }
+            
+            if (errorCount > 0) {
+                vscode.window.showWarningMessage(
+                    `${errorCount} file${errorCount === 1 ? '' : 's'} could not be modified`
+                );
+            }
+        } catch (error: any) {
+            console.error('Apply error:', error);
+
+            // Send error to webview
+            this._panel.webview.postMessage({
+                type: 'applicationError',
+                error: error.message || String(error)
+            });
+
+            // Show error notification
+            vscode.window.showErrorMessage(
+                `Apply failed: ${error.message || String(error)}`
             );
         }
     }

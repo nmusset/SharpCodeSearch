@@ -1,11 +1,14 @@
 // @ts-nocheck
 (function () {
     // Get VS Code API
-    const vscode = acquireVsCodeApi();
+    const vscode = acquireVsCodeAPI();
 
     // DOM Elements
     const patternInput = document.getElementById('pattern-input');
+    const replaceInput = document.getElementById('replace-input');
     const searchButton = document.getElementById('search-button');
+    const previewButton = document.getElementById('preview-button');
+    const applyButton = document.getElementById('apply-button');
     const clearButton = document.getElementById('clear-button');
     const matchCaseCheckbox = document.getElementById('match-case');
     const wholeWordCheckbox = document.getElementById('whole-word');
@@ -15,16 +18,30 @@
     const detailsPanel = document.getElementById('details-panel');
     const detailsContent = document.getElementById('details-content');
     const closeDetailsButton = document.getElementById('close-details');
+    const resultsModeSelector = document.querySelector('.results-mode-selector');
+    const resultsModeButtons = document.querySelectorAll('.mode-button');
 
     // State
-    let currentResults = [];
+    let currentSearchResults = [];
+    let currentReplacementResults = [];
+    let currentApplicationResults = [];
+    let currentMode = 'search'; // 'search', 'preview', 'applied'
     let selectedResultIndex = -1;
 
     // Initialize event listeners
     function init() {
         searchButton.addEventListener('click', handleSearch);
+        previewButton.addEventListener('click', handlePreview);
+        applyButton.addEventListener('click', handleApply);
         clearButton.addEventListener('click', handleClear);
         closeDetailsButton.addEventListener('click', hideDetails);
+
+        // Mode selector buttons
+        resultsModeButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                switchMode(e.target.dataset.mode);
+            });
+        });
 
         // Enable search on Enter key (Ctrl+Enter in textarea)
         patternInput.addEventListener('keydown', (e) => {
@@ -34,8 +51,33 @@
             }
         });
 
+        replaceInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                if (!previewButton.disabled) {
+                    handlePreview();
+                }
+            }
+        });
+
+        // Update UI when patterns change
+        patternInput.addEventListener('change', updateUi);
+        replaceInput.addEventListener('change', updateUi);
+
         // Handle messages from extension
         window.addEventListener('message', handleMessage);
+    }
+
+    // Update UI button states
+    function updateUi() {
+        const hasPattern = patternInput.value.trim().length > 0;
+        const hasReplacePattern = replaceInput.value.trim().length > 0;
+        
+        // Preview button enabled if we have results and replacement pattern
+        previewButton.disabled = !(currentSearchResults.length > 0 && hasReplacePattern);
+        
+        // Apply button enabled if we have replacement previews
+        applyButton.disabled = currentReplacementResults.length === 0;
     }
 
     // Handle search button click
@@ -55,6 +97,8 @@
 
         // Clear previous results
         clearResults();
+        currentMode = 'search';
+        resultsModeSelector.classList.add('hidden');
         showStatus('Searching...', 'info');
         setLoading(true);
 
@@ -69,13 +113,83 @@
         });
     }
 
+    // Handle preview button click
+    function handlePreview() {
+        const pattern = patternInput.value.trim();
+        const replacePattern = replaceInput.value.trim();
+
+        if (!pattern) {
+            showStatus('Please enter a search pattern', 'error');
+            return;
+        }
+
+        if (!replacePattern) {
+            showStatus('Please enter a replacement pattern', 'error');
+            return;
+        }
+
+        if (!validatePattern(pattern)) {
+            showStatus('Invalid search pattern syntax', 'error');
+            return;
+        }
+
+        if (!validatePattern(replacePattern)) {
+            showStatus('Invalid replacement pattern syntax', 'error');
+            return;
+        }
+
+        showStatus('Generating replacement preview...', 'info');
+        previewButton.disabled = true;
+        currentMode = 'preview';
+
+        // Send replacement preview request
+        vscode.postMessage({
+            type: 'preview',
+            pattern: pattern,
+            replacePattern: replacePattern,
+            options: {
+                matchCase: matchCaseCheckbox.checked,
+                wholeWord: wholeWordCheckbox.checked
+            }
+        });
+    }
+
+    // Handle apply button click
+    async function handleApply() {
+        const confirmMsg = `Apply ${currentReplacementResults.length} replacement(s) to ${new Set(currentReplacementResults.map(r => r.filePath)).size} file(s)?`;
+        
+        // Simple prompt for confirmation
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        const pattern = patternInput.value.trim();
+        const replacePattern = replaceInput.value.trim();
+
+        showStatus('Applying changes...', 'info');
+        applyButton.disabled = true;
+
+        // Send apply request
+        vscode.postMessage({
+            type: 'apply',
+            pattern: pattern,
+            replacePattern: replacePattern,
+            options: {
+                matchCase: matchCaseCheckbox.checked,
+                wholeWord: wholeWordCheckbox.checked
+            }
+        });
+    }
+
     // Handle clear button click
     function handleClear() {
         patternInput.value = '';
+        replaceInput.value = '';
         clearResults();
         hideStatus();
         hideDetails();
         patternInput.focus();
+        updateUi();
     }
 
     // Validate pattern syntax
@@ -113,8 +227,20 @@
             case 'searchResults':
                 handleSearchResults(message.results);
                 break;
+            case 'replacementResults':
+                handleReplacementResults(message.results);
+                break;
+            case 'applicationResults':
+                handleApplicationResults(message.results);
+                break;
             case 'searchError':
                 handleSearchError(message.error);
+                break;
+            case 'replacementError':
+                handleReplacementError(message.error);
+                break;
+            case 'applicationError':
+                handleApplicationError(message.error);
                 break;
             case 'searchProgress':
                 showStatus(message.message, 'info');
@@ -125,38 +251,104 @@
     // Handle search results
     function handleSearchResults(results) {
         setLoading(false);
-        currentResults = results || [];
+        currentSearchResults = results || [];
+        currentReplacementResults = [];
+        currentApplicationResults = [];
+        currentMode = 'search';
+        resultsModeSelector.classList.add('hidden');
 
-        if (currentResults.length === 0) {
+        if (currentSearchResults.length === 0) {
             showEmptyState();
             showStatus('No matches found', 'info');
+            updateUi();
             return;
         }
 
         hideStatus();
-        displayResults(currentResults);
-        updateResultsCount(currentResults.length);
+        displaySearchResults(currentSearchResults);
+        updateResultsCount(currentSearchResults.length);
+        updateUi();
     }
 
-    // Handle search error
+    // Handle replacement preview results
+    function handleReplacementResults(results) {
+        previewButton.disabled = false;
+        currentReplacementResults = results || [];
+        currentApplicationResults = [];
+        currentMode = 'preview';
+
+        if (currentReplacementResults.length === 0) {
+            showStatus('No replacements to preview', 'error');
+            updateUi();
+            return;
+        }
+
+        hideStatus();
+        resultsModeSelector.classList.remove('hidden');
+        updateModeSelectorButtons();
+        displayReplacementComparison(currentReplacementResults);
+        updateResultsCount(currentReplacementResults.length);
+    }
+
+    // Handle application results
+    function handleApplicationResults(results) {
+        applyButton.disabled = false;
+        currentApplicationResults = results || [];
+        currentMode = 'applied';
+
+        if (currentApplicationResults.length === 0) {
+            showStatus('Replacements completed (no changes applied)', 'info');
+            updateUi();
+            return;
+        }
+
+        const successCount = currentApplicationResults.filter(r => r.success).length;
+        const errorCount = currentApplicationResults.filter(r => !r.success).length;
+
+        if (errorCount > 0) {
+            showStatus(`Applied to ${successCount} file(s), ${errorCount} error(s)`, 'error');
+        } else {
+            showStatus(`Successfully applied to ${successCount} file(s)!`, 'info');
+        }
+
+        resultsModeSelector.classList.remove('hidden');
+        updateModeSelectorButtons();
+        displayApplicationResults(currentApplicationResults);
+        updateResultsCount(successCount);
+    }
+
+    // Handle errors
     function handleSearchError(error) {
         setLoading(false);
-        showStatus(`Error: ${error}`, 'error');
+        showStatus(`Search error: ${error}`, 'error');
         showEmptyState();
+        updateUi();
     }
 
-    // Display results in the list
-    function displayResults(results) {
+    function handleReplacementError(error) {
+        previewButton.disabled = false;
+        showStatus(`Replacement error: ${error}`, 'error');
+        updateUi();
+    }
+
+    function handleApplicationError(error) {
+        applyButton.disabled = false;
+        showStatus(`Application error: ${error}`, 'error');
+        updateUi();
+    }
+
+    // Display search results
+    function displaySearchResults(results) {
         resultsContainer.innerHTML = '';
 
         results.forEach((result, index) => {
-            const resultItem = createResultItem(result, index);
+            const resultItem = createSearchResultItem(result, index);
             resultsContainer.appendChild(resultItem);
         });
     }
 
-    // Create a result item element
-    function createResultItem(result, index) {
+    // Create a search result item element
+    function createSearchResultItem(result, index) {
         const item = document.createElement('div');
         item.className = 'result-item';
         item.dataset.index = index;
@@ -179,17 +371,23 @@
 
         // Click on item shows details without navigation
         item.addEventListener('click', (e) => {
-            // Only handle if not clicking on a clickable link
             if (!e.target.classList.contains('clickable')) {
                 selectResult(index);
-                showDetails(result);
+                showDetailsForSearch(result);
             }
         });
 
         // Click on file or location navigates to source
         const navigateHandler = (e) => {
             e.stopPropagation();
-            handleResultClick(index);
+            selectResult(index);
+            showDetailsForSearch(result);
+            vscode.postMessage({
+                type: 'navigateToMatch',
+                file: result.file,
+                line: result.line,
+                column: result.column
+            });
         };
         fileElement.addEventListener('click', navigateHandler);
         locationElement.addEventListener('click', navigateHandler);
@@ -197,32 +395,130 @@
         return item;
     }
 
-    // Handle result item click
-    function handleResultClick(index) {
-        selectResult(index);
-        const result = currentResults[index];
+    // Display replacement comparison
+    function displayReplacementComparison(replacements) {
+        resultsContainer.innerHTML = '';
 
-        // Show details panel
-        showDetails(result);
+        replacements.forEach((replacement, index) => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+            resultItem.dataset.index = index;
 
-        // Navigate to the match location in editor
-        vscode.postMessage({
-            type: 'navigateToMatch',
-            file: result.file,
-            line: result.line,
-            column: result.column
+            const fileElement = document.createElement('div');
+            fileElement.className = 'result-file';
+            fileElement.textContent = replacement.filePath || 'Unknown file';
+            fileElement.style.cursor = 'pointer';
+            fileElement.style.textDecoration = 'underline dotted';
+
+            const locationElement = document.createElement('div');
+            locationElement.className = 'result-location';
+            locationElement.textContent = `Line ${replacement.line || '?'}, Column ${replacement.column || '?'}`;
+
+            const comparisonElement = document.createElement('div');
+            comparisonElement.className = 'result-comparison';
+
+            const originalColumn = document.createElement('div');
+            originalColumn.className = 'comparison-column';
+            originalColumn.innerHTML = `
+                <div class="comparison-title original">Original</div>
+                <div class="comparison-code original">${escapeHtml(replacement.originalCode || '')}</div>
+            `;
+
+            const replacementColumn = document.createElement('div');
+            replacementColumn.className = 'comparison-column';
+            replacementColumn.innerHTML = `
+                <div class="comparison-title replacement">Replacement</div>
+                <div class="comparison-code replacement">${escapeHtml(replacement.replacementCode || '')}</div>
+            `;
+
+            comparisonElement.appendChild(originalColumn);
+            comparisonElement.appendChild(replacementColumn);
+
+            resultItem.appendChild(fileElement);
+            resultItem.appendChild(locationElement);
+            resultItem.appendChild(comparisonElement);
+
+            // Navigate to match on click
+            fileElement.addEventListener('click', () => {
+                vscode.postMessage({
+                    type: 'navigateToMatch',
+                    file: replacement.filePath,
+                    line: replacement.line,
+                    column: replacement.column
+                });
+            });
+
+            resultsContainer.appendChild(resultItem);
+        });
+    }
+
+    // Display application results
+    function displayApplicationResults(results) {
+        resultsContainer.innerHTML = '';
+
+        results.forEach((result, index) => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item ' + (result.success ? '' : 'result-error');
+            resultItem.dataset.index = index;
+
+            const fileElement = document.createElement('div');
+            fileElement.className = 'result-file';
+            fileElement.innerHTML = (result.success ? '✓ ' : '✗ ') + (result.filePath || 'Unknown file');
+
+            const statusElement = document.createElement('div');
+            statusElement.className = 'result-location';
+            if (result.success) {
+                statusElement.textContent = `Applied ${result.replacementsApplied} replacement(s)`;
+            } else {
+                statusElement.textContent = `Error: ${result.error || 'Unknown error'}`;
+            }
+
+            resultItem.appendChild(fileElement);
+            resultItem.appendChild(statusElement);
+            resultsContainer.appendChild(resultItem);
+        });
+    }
+
+    // Switch display mode
+    function switchMode(mode) {
+        currentMode = mode;
+        updateModeSelectorButtons();
+
+        switch (mode) {
+            case 'search':
+                displaySearchResults(currentSearchResults);
+                updateResultsCount(currentSearchResults.length);
+                break;
+            case 'preview':
+                displayReplacementComparison(currentReplacementResults);
+                updateResultsCount(currentReplacementResults.length);
+                break;
+            case 'applied':
+                displayApplicationResults(currentApplicationResults);
+                const successCount = currentApplicationResults.filter(r => r.success).length;
+                updateResultsCount(successCount);
+                break;
+        }
+    }
+
+    // Update which mode button is active
+    function updateModeSelectorButtons() {
+        resultsModeButtons.forEach(btn => {
+            if (btn.dataset.mode === currentMode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
         });
     }
 
     // Select a result item
     function selectResult(index) {
-        // Deselect previous
         const previousSelected = resultsContainer.querySelector('.result-item.selected');
         if (previousSelected) {
             previousSelected.classList.remove('selected');
         }
 
-        // Select new
         selectedResultIndex = index;
         const newSelected = resultsContainer.querySelector(`[data-index="${index}"]`);
         if (newSelected) {
@@ -230,20 +526,14 @@
         }
     }
 
-    // Show details panel
-    function showDetails(result) {
+    // Show details panel for search result
+    function showDetailsForSearch(result) {
         detailsContent.innerHTML = '';
 
-        // File
         addDetailRow('File', result.file || 'Unknown');
-
-        // Location
         addDetailRow('Location', `Line ${result.line || '?'}, Column ${result.column || '?'}`);
-
-        // Matched Code
         addDetailRow('Matched Code', result.code || result.matchedText || 'N/A');
 
-        // Placeholders (if any)
         if (result.placeholders && Object.keys(result.placeholders).length > 0) {
             const placeholdersText = Object.entries(result.placeholders)
                 .map(([key, value]) => `${key}: ${value}`)
@@ -290,8 +580,12 @@
 
     // Clear results
     function clearResults() {
-        currentResults = [];
+        currentSearchResults = [];
+        currentReplacementResults = [];
+        currentApplicationResults = [];
         selectedResultIndex = -1;
+        currentMode = 'search';
+        resultsModeSelector.classList.add('hidden');
         resultsContainer.innerHTML = `
             <div class="empty-state">
                 <span class="empty-icon">🔍</span>
@@ -329,6 +623,14 @@
         }
     }
 
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     // Initialize the webview
     init();
 })();
+

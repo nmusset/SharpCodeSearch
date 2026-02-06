@@ -49,9 +49,18 @@ async function activate(context) {
     }
     // Register search command with the new webview implementation
     const searchCommand = (0, SearchCommand_1.registerSearchCommand)(context, backendService);
-    // Register replace command (placeholder for now)
+    // Register replace command (opens the search panel with focus on replace input)
     const replaceCommand = vscode.commands.registerCommand('sharpCodeSearch.replace', () => {
-        vscode.window.showInformationMessage('Sharp Code Search: Replace command (not yet implemented)');
+        // Open the search panel - the replace functionality is integrated there
+        const panel = SearchCommand_1.SearchPanel.currentPanel;
+        if (panel) {
+            // If panel is already open, just bring it to focus
+            vscode.commands.executeCommand('sharpCodeSearch.search');
+        }
+        else {
+            // Open the panel
+            vscode.commands.executeCommand('sharpCodeSearch.search');
+        }
     });
     // Register pattern catalog command (placeholder for now)
     const catalogCommand = vscode.commands.registerCommand('sharpCodeSearch.catalog', () => {

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { BackendService } from './BackendService';
-import { registerSearchCommand } from './SearchCommand';
+import { registerSearchCommand, SearchPanel } from './SearchCommand';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Sharp Code Search extension is now active');
@@ -19,9 +19,17 @@ export async function activate(context: vscode.ExtensionContext) {
     // Register search command with the new webview implementation
     const searchCommand = registerSearchCommand(context, backendService);
 
-    // Register replace command (placeholder for now)
+    // Register replace command (opens the search panel with focus on replace input)
     const replaceCommand = vscode.commands.registerCommand('sharpCodeSearch.replace', () => {
-        vscode.window.showInformationMessage('Sharp Code Search: Replace command (not yet implemented)');
+        // Open the search panel - the replace functionality is integrated there
+        const panel = SearchPanel.currentPanel;
+        if (panel) {
+            // If panel is already open, just bring it to focus
+            vscode.commands.executeCommand('sharpCodeSearch.search');
+        } else {
+            // Open the panel
+            vscode.commands.executeCommand('sharpCodeSearch.search');
+        }
     });
 
     // Register pattern catalog command (placeholder for now)

@@ -12,16 +12,29 @@
 
 <body>
     <div class="container">
-        <!-- Search Input Section -->
+        <!-- Search & Replace Input Section -->
         <div class="search-section">
-            <h2>Pattern Search</h2>
+            <h2>Pattern Search & Replace</h2>
+            
+            <!-- Search Pattern -->
             <div class="input-group">
-                <label for="pattern-input">Pattern:</label>
+                <label for="pattern-input">Search Pattern:</label>
                 <textarea id="pattern-input" class="pattern-input"
                     placeholder="Enter search pattern (e.g., $obj$.ToString())" rows="3" spellcheck="false"></textarea>
                 <div class="input-help">
                     <span class="help-icon" title="Pattern Syntax Help">?</span>
                     <span class="help-text">Use $name$ for placeholders. Examples: $expr$, $obj$.Method($args$)</span>
+                </div>
+            </div>
+
+            <!-- Replace Pattern -->
+            <div class="input-group">
+                <label for="replace-input">Replace Pattern:</label>
+                <textarea id="replace-input" class="pattern-input"
+                    placeholder="Enter replacement pattern (e.g., $obj$.ToString() is replaced with new value)" rows="3" spellcheck="false"></textarea>
+                <div class="input-help">
+                    <span class="help-icon" title="Replacement Syntax Help">?</span>
+                    <span class="help-text">Use $name$ to reference captured values from search pattern. Leave empty for removal.</span>
                 </div>
             </div>
 
@@ -41,6 +54,14 @@
                     <span class="button-icon">🔍</span>
                     Search
                 </button>
+                <button id="preview-button" class="primary-button" disabled>
+                    <span class="button-icon">👁️</span>
+                    Preview Replacements
+                </button>
+                <button id="apply-button" class="success-button" disabled>
+                    <span class="button-icon">✓</span>
+                    Apply Changes
+                </button>
                 <button id="clear-button" class="secondary-button">
                     Clear
                 </button>
@@ -55,6 +76,12 @@
             </div>
 
             <div id="status-message" class="status-message hidden"></div>
+            
+            <div class="results-mode-selector hidden">
+                <button id="mode-search" class="mode-button active" data-mode="search">Search Results</button>
+                <button id="mode-preview" class="mode-button" data-mode="preview">Replacement Preview</button>
+                <button id="mode-replace" class="mode-button" data-mode="replace">Applied Changes</button>
+            </div>
 
             <div id="results-container" class="results-container">
                 <div class="empty-state">
