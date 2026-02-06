@@ -175,13 +175,13 @@ export class SearchPanel {
             // Show notification
             const successCount = results.filter((r: any) => r.success).length;
             const errorCount = results.filter((r: any) => !r.success).length;
-            
+
             if (successCount > 0) {
                 vscode.window.showInformationMessage(
                     `Applied ${successCount} replacement${successCount === 1 ? '' : 's'}${errorCount > 0 ? `, ${errorCount} error${errorCount === 1 ? '' : 's'}` : ''}`
                 );
             }
-            
+
             if (errorCount > 0) {
                 vscode.window.showWarningMessage(
                     `${errorCount} file${errorCount === 1 ? '' : 's'} could not be modified`

@@ -1,71 +1,151 @@
 // @ts-nocheck
 (function () {
-    // Get VS Code API
-    const vscode = acquireVsCodeAPI();
+    try {
+        console.log('Sharp Code Search: Script loaded');
 
-    // DOM Elements
-    const patternInput = document.getElementById('pattern-input');
-    const replaceInput = document.getElementById('replace-input');
-    const searchButton = document.getElementById('search-button');
-    const previewButton = document.getElementById('preview-button');
-    const applyButton = document.getElementById('apply-button');
-    const clearButton = document.getElementById('clear-button');
-    const matchCaseCheckbox = document.getElementById('match-case');
-    const wholeWordCheckbox = document.getElementById('whole-word');
-    const resultsContainer = document.getElementById('results-container');
-    const resultsCount = document.getElementById('results-count');
-    const statusMessage = document.getElementById('status-message');
-    const detailsPanel = document.getElementById('details-panel');
-    const detailsContent = document.getElementById('details-content');
-    const closeDetailsButton = document.getElementById('close-details');
-    const resultsModeSelector = document.querySelector('.results-mode-selector');
-    const resultsModeButtons = document.querySelectorAll('.mode-button');
+        // VS Code API will be acquired later when needed
+        let vscode = null;
 
-    // State
-    let currentSearchResults = [];
-    let currentReplacementResults = [];
-    let currentApplicationResults = [];
-    let currentMode = 'search'; // 'search', 'preview', 'applied'
-    let selectedResultIndex = -1;
+        // DOM Elements - Initialize to null, will be set in init()
+        let patternInput = null;
+        let replaceInput = null;
+        let searchButton = null;
+        let previewButton = null;
+        let applyButton = null;
+        let clearButton = null;
+        let matchCaseCheckbox = null;
+        let wholeWordCheckbox = null;
+        let resultsContainer = null;
+        let resultsCount = null;
+        let statusMessage = null;
+        let detailsPanel = null;
+        let detailsContent = null;
+        let closeDetailsButton = null;
+        let resultsModeSelector = null;
+        let resultsModeButtons = null;
 
-    // Initialize event listeners
-    function init() {
-        searchButton.addEventListener('click', handleSearch);
-        previewButton.addEventListener('click', handlePreview);
-        applyButton.addEventListener('click', handleApply);
-        clearButton.addEventListener('click', handleClear);
-        closeDetailsButton.addEventListener('click', hideDetails);
+        // State
+        let currentSearchResults = [];
+        let currentReplacementResults = [];
+        let currentApplicationResults = [];
+        let currentMode = 'search'; // 'search', 'preview', 'applied'
+        let selectedResultIndex = -1;
+
+        // Initialize event listeners
+        function init() {
+            console.log('Init: Starting initialization...');
+            
+            try {
+                // VS Code API should be acquired by inline script in HTML
+                if (window.vscodeApi) {
+                    console.log('Init: Using vscodeApi from window (inline script)');
+                    vscode = window.vscodeApi;
+                } else {
+                    console.warn('Init: window.vscodeApi not found, trying acquireVsCodeAPI fallback...');
+                    if (typeof acquireVsCodeAPI === 'function') {
+                        console.log('Init: Calling acquireVsCodeAPI fallback...');
+                        vscode = acquireVsCodeAPI();
+                    } else {
+                        throw new Error('Neither window.vscodeApi nor acquireVsCodeAPI available');
+                    }
+                }
+
+                if (!vscode) {
+                    throw new Error('Failed to get VS Code API (result was null/undefined)');
+                }
+
+                console.log('Init: VS Code API acquired successfully');
+            } catch (e) {
+                console.error('Init: Failed to acquire VS Code API:', e);
+                document.body.innerHTML = '<div style="color: red; padding: 20px;"><h2>VS Code API Error</h2><p>Could not access VS Code API.</p><p>Error: ' + e.message + '</p><p>This may indicate a problem with the webview configuration.</p></div>';
+                return;
+            }
+
+            // Get DOM elements
+            patternInput = document.getElementById('pattern-input');
+            replaceInput = document.getElementById('replace-input');
+            searchButton = document.getElementById('search-button');
+            previewButton = document.getElementById('preview-button');
+            applyButton = document.getElementById('apply-button');
+            clearButton = document.getElementById('clear-button');
+            matchCaseCheckbox = document.getElementById('match-case');
+            wholeWordCheckbox = document.getElementById('whole-word');
+            resultsContainer = document.getElementById('results-container');
+            resultsCount = document.getElementById('results-count');
+            statusMessage = document.getElementById('status-message');
+            detailsPanel = document.getElementById('details-panel');
+            detailsContent = document.getElementById('details-content');
+            closeDetailsButton = document.getElementById('close-details');
+            resultsModeSelector = document.querySelector('.results-mode-selector');
+            resultsModeButtons = document.querySelectorAll('.mode-button');
+
+            console.log('Init: DOM elements loaded:', {
+                patternInput: !!patternInput,
+                replaceInput: !!replaceInput,
+                searchButton: !!searchButton,
+                previewButton: !!previewButton,
+                applyButton: !!applyButton,
+                clearButton: !!clearButton,
+                resultsModeButtons: resultsModeButtons.length
+            });
+
+            console.log('Init: Attaching event listeners...');
+        }
+        
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                console.log('Clear button clicked');
+                handleClear();
+            });
+        }
+        
+        if (closeDetailsButton) {
+            closeDetailsButton.addEventListener('click', hideDetails);
+        }
 
         // Mode selector buttons
-        resultsModeButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                switchMode(e.target.dataset.mode);
+        if (resultsModeButtons && resultsModeButtons.length > 0) {
+            resultsModeButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    console.log('Mode button clicked:', e.target.dataset.mode);
+                    switchMode(e.target.dataset.mode);
+                });
             });
-        });
+        }
 
         // Enable search on Enter key (Ctrl+Enter in textarea)
-        patternInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                e.preventDefault();
-                handleSearch();
-            }
-        });
-
-        replaceInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                e.preventDefault();
-                if (!previewButton.disabled) {
-                    handlePreview();
+        if (patternInput) {
+            patternInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    e.preventDefault();
+                    handleSearch();
                 }
-            }
-        });
+            });
+        }
+
+        if (replaceInput) {
+            replaceInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    e.preventDefault();
+                    if (!previewButton || !previewButton.disabled) {
+                        handlePreview();
+                    }
+                }
+            });
+        }
 
         // Update UI when patterns change
-        patternInput.addEventListener('change', updateUi);
-        replaceInput.addEventListener('change', updateUi);
+        if (patternInput) {
+            patternInput.addEventListener('change', updateUi);
+        }
+        if (replaceInput) {
+            replaceInput.addEventListener('change', updateUi);
+        }
 
         // Handle messages from extension
         window.addEventListener('message', handleMessage);
+        
+        console.log('Event listeners initialized successfully');
     }
 
     // Update UI button states
@@ -82,6 +162,7 @@
 
     // Handle search button click
     function handleSearch() {
+        console.log('handleSearch called');
         const pattern = patternInput.value.trim();
 
         // Validate pattern
@@ -103,6 +184,7 @@
         setLoading(true);
 
         // Send search request to extension
+        console.log('Posting search message:', { type: 'search', pattern });
         vscode.postMessage({
             type: 'search',
             pattern: pattern,
@@ -183,6 +265,7 @@
 
     // Handle clear button click
     function handleClear() {
+        console.log('handleClear called');
         patternInput.value = '';
         replaceInput.value = '';
         clearResults();
@@ -190,6 +273,7 @@
         hideDetails();
         patternInput.focus();
         updateUi();
+        console.log('Clear completed');
     }
 
     // Validate pattern syntax
@@ -631,6 +715,14 @@
     }
 
     // Initialize the webview
+    console.log('Sharp Code Search: Starting initialization...');
     init();
+    console.log('Sharp Code Search: Initialization complete');
+    } catch (error) {
+        console.error('Sharp Code Search: Fatal error during initialization:', error);
+        console.error('Stack trace:', error.stack);
+        // Show error to user in the page
+        document.body.innerHTML = '<div style="color: red; padding: 20px;"><h2>Error Loading Sharp Code Search</h2><p>' + error.message + '</p><pre>' + error.stack + '</pre></div>';
+    }
 })();
 

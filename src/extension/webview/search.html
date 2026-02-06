@@ -15,7 +15,7 @@
         <!-- Search & Replace Input Section -->
         <div class="search-section">
             <h2>Pattern Search & Replace</h2>
-            
+
             <!-- Search Pattern -->
             <div class="input-group">
                 <label for="pattern-input">Search Pattern:</label>
@@ -31,10 +31,12 @@
             <div class="input-group">
                 <label for="replace-input">Replace Pattern:</label>
                 <textarea id="replace-input" class="pattern-input"
-                    placeholder="Enter replacement pattern (e.g., $obj$.ToString() is replaced with new value)" rows="3" spellcheck="false"></textarea>
+                    placeholder="Enter replacement pattern (e.g., $obj$.ToString() is replaced with new value)" rows="3"
+                    spellcheck="false"></textarea>
                 <div class="input-help">
                     <span class="help-icon" title="Replacement Syntax Help">?</span>
-                    <span class="help-text">Use $name$ to reference captured values from search pattern. Leave empty for removal.</span>
+                    <span class="help-text">Use $name$ to reference captured values from search pattern. Leave empty for
+                        removal.</span>
                 </div>
             </div>
 
@@ -76,7 +78,7 @@
             </div>
 
             <div id="status-message" class="status-message hidden"></div>
-            
+
             <div class="results-mode-selector hidden">
                 <button id="mode-search" class="mode-button active" data-mode="search">Search Results</button>
                 <button id="mode-preview" class="mode-button" data-mode="preview">Replacement Preview</button>
@@ -103,7 +105,20 @@
         </div>
     </div>
 
-    <script src="{{scriptUri}}"></script>
+    <!-- Inline script to acquire VS Code API before external script loads -->
+    <script nonce="{{nonce}}">
+        // This MUST be inline and at the top level to access acquireVsCodeAPI
+        console.log('Search.html: Acquiring VS Code API...');
+        try {
+            window.vscodeApi = acquireVsCodeAPI();
+            console.log('Search.html: VS Code API acquired successfully');
+        } catch (e) {
+            console.error('Search.html: Failed to acquire VS Code API', e);
+        }
+    </script>
+    
+    <!-- External script that uses window.vscodeApi -->
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
 </body>
 
 </html>
