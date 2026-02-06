@@ -13,6 +13,7 @@ class Program
     static async Task<int> Main(string[] args)
     {
         string? pattern = null;
+        string? replace = null;
         string? file = null;
         string? workspace = null;
         string? projectFilter = null;
@@ -28,6 +29,9 @@ class Program
             {
                 case "--pattern" when i + 1 < args.Length:
                     pattern = args[++i];
+                    break;
+                case "--replace" when i + 1 < args.Length:
+                    replace = args[++i];
                     break;
                 case "--file" when i + 1 < args.Length:
                     file = args[++i];
@@ -67,18 +71,37 @@ class Program
 
         try
         {
-            // Execute the search
-            var results = await ExecuteSearchAsync(pattern, file, workspace,
-                projectFilter, fileFilter, folderFilter, maxParallelism);
-
-            // Output results
-            if (output.Equals("json", StringComparison.OrdinalIgnoreCase))
+            if (replace != null)
             {
-                OutputJson(results);
+                // Execute search and replace
+                var replacements = await ExecuteReplaceAsync(pattern, replace, file, workspace,
+                    projectFilter, fileFilter, folderFilter, maxParallelism);
+
+                // Output replacement results
+                if (output.Equals("json", StringComparison.OrdinalIgnoreCase))
+                {
+                    OutputReplacementJson(replacements);
+                }
+                else
+                {
+                    OutputReplacementText(replacements);
+                }
             }
             else
             {
-                OutputText(results);
+                // Execute the search
+                var results = await ExecuteSearchAsync(pattern, file, workspace,
+                    projectFilter, fileFilter, folderFilter, maxParallelism);
+
+                // Output results
+                if (output.Equals("json", StringComparison.OrdinalIgnoreCase))
+                {
+                    OutputJson(results);
+                }
+                else
+                {
+                    OutputText(results);
+                }
             }
 
             return 0;
@@ -182,6 +205,155 @@ class Program
         return results;
     }
 
+    static async Task<List<ReplacementOutput>> ExecuteReplaceAsync(
+        string pattern,
+        string replacePattern,
+        string? file,
+        string? workspace,
+        string? projectFilter,
+        string? fileFilter,
+        string? folderFilter,
+        int maxParallelism)
+    {
+        // Parse patterns
+        var parser = new PatternParser();
+        var searchPatternAst = parser.Parse(pattern);
+        var replacePatternAst = parser.ParseReplacePattern(replacePattern, searchPatternAst);
+
+        var replacements = new List<ReplacementOutput>();
+
+        if (file != null)
+        {
+            // Replace in a single file
+            if (!File.Exists(file))
+            {
+                throw new FileNotFoundException($"File not found: {file}");
+            }
+
+            var code = File.ReadAllText(file);
+            var syntaxTree = CSharpSyntaxTree.ParseText(code, path: file);
+            var root = syntaxTree.GetRoot();
+
+            var matcher = new PatternMatcher();
+            var matches = matcher.FindMatches(searchPatternAst, root);
+
+            foreach (var match in matches)
+            {
+                var result = match.ApplyReplacement(replacePatternAst);
+                var lineSpan = match.Location.GetLineSpan();
+
+                replacements.Add(new ReplacementOutput
+                {
+                    FilePath = file,
+                    Line = lineSpan.StartLinePosition.Line + 1,
+                    Column = lineSpan.StartLinePosition.Character + 1,
+                    OriginalCode = result.OriginalText,
+                    ReplacementCode = result.ReplacementText,
+                    Placeholders = match.Placeholders
+                });
+            }
+        }
+        else
+        {
+            // Workspace-level replace
+            var workspacePath = workspace ?? Directory.GetCurrentDirectory();
+
+            var compilationManager = new CompilationManager();
+            var progressReporter = new JsonProgressReporter();
+            var workspaceMatcher = new WorkspaceMatcher(compilationManager, progressReporter);
+
+            var options = new WorkspaceSearchOptions
+            {
+                ProjectFilter = projectFilter,
+                FileFilter = fileFilter,
+                FolderFilter = folderFilter,
+                MaxDegreeOfParallelism = maxParallelism
+            };
+
+            var searchResult = await workspaceMatcher.SearchWorkspaceAsync(
+                searchPatternAst,
+                workspacePath,
+                options);
+
+            foreach (var matchResult in searchResult.Matches)
+            {
+                // Create PatternMatch from MatchResult
+                var patternMatch = new PatternMatch
+                {
+                    Node = matchResult.Node,
+                    Location = matchResult.Location,
+                    Placeholders = matchResult.Placeholders
+                };
+
+                var result = patternMatch.ApplyReplacement(replacePatternAst);
+                var lineSpan = matchResult.Location.GetLineSpan();
+
+                replacements.Add(new ReplacementOutput
+                {
+                    FilePath = matchResult.FilePath,
+                    Line = lineSpan.StartLinePosition.Line + 1,
+                    Column = lineSpan.StartLinePosition.Character + 1,
+                    OriginalCode = result.OriginalText,
+                    ReplacementCode = result.ReplacementText,
+                    Placeholders = matchResult.Placeholders
+                });
+            }
+
+            // Report any errors
+            if (searchResult.Errors.Any())
+            {
+                Console.Error.WriteLine($"Encountered {searchResult.Errors.Count} error(s) during search:");
+                foreach (var error in searchResult.Errors)
+                {
+                    Console.Error.WriteLine($"  [{error.ErrorType}] {error.FilePath}: {error.Message}");
+                }
+            }
+        }
+
+        return replacements;
+    }
+
+    static void OutputReplacementJson(List<ReplacementOutput> replacements)
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var json = JsonSerializer.Serialize(new
+        {
+            replacementCount = replacements.Count,
+            replacements = replacements
+        }, options);
+
+        Console.WriteLine(json);
+    }
+
+    static void OutputReplacementText(List<ReplacementOutput> replacements)
+    {
+        Console.WriteLine($"Found {replacements.Count} replacement(s):");
+        Console.WriteLine();
+
+        foreach (var replacement in replacements)
+        {
+            Console.WriteLine($"{replacement.FilePath}:{replacement.Line}:{replacement.Column}");
+            Console.WriteLine("  Original:");
+            Console.WriteLine($"    {replacement.OriginalCode}");
+            Console.WriteLine("  Replacement:");
+            Console.WriteLine($"    {replacement.ReplacementCode}");
+            if (replacement.Placeholders.Any())
+            {
+                Console.WriteLine("  Placeholders:");
+                foreach (var kvp in replacement.Placeholders)
+                {
+                    Console.WriteLine($"    {kvp.Key} = {kvp.Value}");
+                }
+            }
+            Console.WriteLine();
+        }
+    }
+
     static void OutputJson(List<SearchResult> results)
     {
         var options = new JsonSerializerOptions
@@ -229,6 +401,7 @@ class Program
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine("  --pattern <pattern>           The search pattern to match against C# code (required)");
+        Console.WriteLine("  --replace <pattern>           The replacement pattern (uses captured placeholders from search)");
         Console.WriteLine("  --file <file>                 Search in a single C# file");
         Console.WriteLine("  --workspace <path>            Search entire workspace (default: current directory)");
         Console.WriteLine("  --project-filter <pattern>    Filter projects (e.g., \"*.Tests.csproj\")");
@@ -247,6 +420,12 @@ class Program
         Console.WriteLine();
         Console.WriteLine("  # Search with filters");
         Console.WriteLine("  SharpCodeSearch --pattern \"$method$($args$)\" --folder-filter \"Controllers\"");
+        Console.WriteLine();
+        Console.WriteLine("  # Search and replace");
+        Console.WriteLine("  SharpCodeSearch --pattern \"$var$++\" --replace \"$var$ = $var$ + 1\" --file Program.cs");
+        Console.WriteLine();
+        Console.WriteLine("  # Replace try-catch with using statement");
+        Console.WriteLine("  SharpCodeSearch --pattern \"$var$ = new $type$($args$)\" --replace \"using var $var$ = new $type$($args$)\"");
     }
 }
 
@@ -256,5 +435,15 @@ class SearchResult
     public int Line { get; init; }
     public int Column { get; init; }
     public required string MatchedCode { get; init; }
+    public Dictionary<string, string> Placeholders { get; init; } = new();
+}
+
+class ReplacementOutput
+{
+    public required string FilePath { get; init; }
+    public int Line { get; init; }
+    public int Column { get; init; }
+    public required string OriginalCode { get; init; }
+    public required string ReplacementCode { get; init; }
     public Dictionary<string, string> Placeholders { get; init; } = new();
 }

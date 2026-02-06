@@ -774,4 +774,128 @@ public class PatternMatch
     /// Location of the match in source code.
     /// </summary>
     public required Location Location { get; init; }
+
+    /// <summary>
+    /// Applies a replacement pattern to this match.
+    /// </summary>
+    /// <param name="replacePattern">The replacement pattern to apply</param>
+    /// <returns>The replacement result</returns>
+    public ReplacementResult ApplyReplacement(ReplacePattern replacePattern)
+    {
+        if (replacePattern == null)
+            throw new ArgumentNullException(nameof(replacePattern));
+
+        // Build the replacement text by processing each node
+        var replacementBuilder = new System.Text.StringBuilder();
+
+        foreach (var node in replacePattern.Nodes)
+        {
+            if (node is ReplaceTextNode textNode)
+            {
+                replacementBuilder.Append(textNode.Text);
+            }
+            else if (node is ReplacePlaceholderNode placeholderNode)
+            {
+                // Look up captured value for this placeholder
+                if (Placeholders.TryGetValue(placeholderNode.Name, out var capturedValue))
+                {
+                    replacementBuilder.Append(capturedValue);
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"Placeholder '${placeholderNode.Name}$' not found in match. " +
+                        $"Available: {string.Join(", ", Placeholders.Keys.Select(k => $"${k}$"))}");
+                }
+            }
+        }
+
+        var replacementText = replacementBuilder.ToString();
+
+        // Calculate base indentation from the matched node
+        var baseIndentation = CalculateBaseIndentation(Node);
+
+        // Apply indentation to multi-line replacements
+        var indentedReplacement = ApplyIndentation(replacementText, baseIndentation);
+
+        // Get original matched text
+        var originalText = Node.ToString();
+
+        // Get file path from location
+        var filePath = Location.SourceTree?.FilePath ?? "";
+
+        return new ReplacementResult
+        {
+            ReplacementText = indentedReplacement,
+            OriginalText = originalText,
+            BaseIndentation = baseIndentation,
+            FilePath = filePath,
+            StartPosition = Node.SpanStart,
+            EndPosition = Node.Span.End
+        };
+    }
+
+    /// <summary>
+    /// Calculates the base indentation level (in spaces) of the matched node.
+    /// </summary>
+    private int CalculateBaseIndentation(SyntaxNode node)
+    {
+        var location = node.GetLocation();
+        if (location.SourceTree == null)
+            return 0;
+
+        var lineSpan = location.GetLineSpan();
+        var startLine = lineSpan.StartLinePosition.Line;
+
+        // Get the source text for the line
+        var sourceText = location.SourceTree.GetText();
+        var line = sourceText.Lines[startLine];
+        var lineText = line.ToString();
+
+        // Count leading whitespace
+        int indentation = 0;
+        foreach (var ch in lineText)
+        {
+            if (ch == ' ')
+                indentation++;
+            else if (ch == '\t')
+                indentation += 4; // Treat tab as 4 spaces
+            else
+                break;
+        }
+
+        return indentation;
+    }
+
+    /// <summary>
+    /// Applies base indentation to a multi-line replacement text.
+    /// </summary>
+    private string ApplyIndentation(string text, int baseIndentation)
+    {
+        if (baseIndentation == 0 || !text.Contains('\n'))
+            return text;
+
+        var indent = new string(' ', baseIndentation);
+        var lines = text.Split('\n');
+
+        // First line keeps its original indentation (inherits from match position)
+        // Subsequent lines get the base indentation plus any relative indentation
+        var result = new System.Text.StringBuilder();
+        result.Append(lines[0]);
+
+        for (int i = 1; i < lines.Length; i++)
+        {
+            result.Append('\n');
+
+            // If line is not empty, add base indentation
+            var line = lines[i];
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                result.Append(indent);
+                result.Append(line.TrimStart()); // Remove original indentation, use base instead
+            }
+        }
+
+        return result.ToString();
+    }
 }

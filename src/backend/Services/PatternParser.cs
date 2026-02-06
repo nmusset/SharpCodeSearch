@@ -211,6 +211,111 @@ public class PatternParser
             _ => Models.PlaceholderType.Any
         };
     }
+
+    /// <summary>
+    /// Parses a replacement pattern string into a ReplacePattern.
+    /// </summary>
+    /// <param name="replacePattern">The replacement pattern string to parse</param>
+    /// <param name="searchPattern">The search pattern that this replacement is for</param>
+    /// <returns>Parsed replacement pattern</returns>
+    public Models.ReplacePattern ParseReplacePattern(string replacePattern, Models.PatternAst searchPattern)
+    {
+        if (replacePattern == null)
+            throw new ArgumentNullException(nameof(replacePattern));
+        if (searchPattern == null)
+            throw new ArgumentNullException(nameof(searchPattern));
+
+        // Get all placeholder names from search pattern
+        var searchPlaceholders = searchPattern.Nodes
+            .OfType<Models.PlaceholderNode>()
+            .Select(p => p.Name)
+            .ToHashSet();
+
+        var tokens = Tokenize(replacePattern);
+        var nodes = new List<Models.ReplacePatternNode>();
+
+        foreach (var token in tokens)
+        {
+            if (token.Type == TokenType.Text)
+            {
+                nodes.Add(new Models.ReplaceTextNode
+                {
+                    Text = token.Value,
+                    Position = token.Position,
+                    Length = token.Length
+                });
+            }
+            else if (token.Type == TokenType.Placeholder)
+            {
+                var placeholderName = token.Value.Trim();
+
+                // Validate that the placeholder exists in the search pattern
+                if (!searchPlaceholders.Contains(placeholderName))
+                {
+                    throw new PatternParseException(
+                        $"Placeholder '${placeholderName}$' in replacement pattern does not exist in search pattern. " +
+                        $"Available placeholders: {string.Join(", ", searchPlaceholders.Select(p => $"${p}$"))}",
+                        token.Position);
+                }
+
+                nodes.Add(new Models.ReplacePlaceholderNode
+                {
+                    Name = placeholderName,
+                    Position = token.Position,
+                    Length = token.Length
+                });
+            }
+        }
+
+        return new Models.ReplacePattern
+        {
+            OriginalPattern = replacePattern,
+            SearchPattern = searchPattern,
+            Nodes = nodes
+        };
+    }
+
+    /// <summary>
+    /// Validates a replacement pattern string against a search pattern.
+    /// </summary>
+    /// <param name="replacePattern">The replacement pattern to validate</param>
+    /// <param name="searchPattern">The search pattern</param>
+    /// <returns>Validation result</returns>
+    public PatternValidationResult ValidateReplacePattern(string replacePattern, Models.PatternAst searchPattern)
+    {
+        var errors = new List<string>();
+
+        if (searchPattern == null)
+        {
+            errors.Add("Search pattern cannot be null");
+            return new PatternValidationResult { IsValid = false, Errors = errors };
+        }
+
+        if (string.IsNullOrWhiteSpace(replacePattern))
+        {
+            errors.Add("Replacement pattern cannot be empty");
+            return new PatternValidationResult { IsValid = false, Errors = errors };
+        }
+
+        try
+        {
+            var parsed = ParseReplacePattern(replacePattern, searchPattern);
+        }
+        catch (PatternParseException ex)
+        {
+            errors.Add(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Unexpected error: {ex.Message}");
+        }
+
+        return new PatternValidationResult
+        {
+            IsValid = errors.Count == 0,
+            Errors = errors
+        };
+    }
 }
 
 /// <summary>
