@@ -20,6 +20,7 @@ class Program
         string? fileFilter = null;
         string? folderFilter = null;
         string output = "json";
+        bool apply = false;
         int maxParallelism = Environment.ProcessorCount;
 
         // Simple CLI argument parsing
@@ -32,6 +33,9 @@ class Program
                     break;
                 case "--replace" when i + 1 < args.Length:
                     replace = args[++i];
+                    break;
+                case "--apply":
+                    apply = true;
                     break;
                 case "--file" when i + 1 < args.Length:
                     file = args[++i];
@@ -75,10 +79,34 @@ class Program
             {
                 // Execute search and replace
                 var replacements = await ExecuteReplaceAsync(pattern, replace, file, workspace,
-                    projectFilter, fileFilter, folderFilter, maxParallelism);
+                    projectFilter, fileFilter, folderFilter, maxParallelism, apply);
+
+                // Apply replacements to files if requested
+                List<ReplacementApplicationResult>? applicationResults = null;
+                if (apply && replacements.Any())
+                {
+                    var applier = new ReplacementApplier();
+                    applicationResults = applier.ApplyReplacements(
+                        replacements
+                            .Select(r => new Models.ReplacementResult
+                            {
+                                ReplacementText = r.ReplacementCode,
+                                OriginalText = r.OriginalCode,
+                                FilePath = r.FilePath,
+                                StartPosition = r.StartPosition,
+                                EndPosition = r.EndPosition,
+                                BaseIndentation = 0
+                            })
+                            .ToList()
+                    );
+                }
 
                 // Output replacement results
-                if (output.Equals("json", StringComparison.OrdinalIgnoreCase))
+                if (apply && applicationResults != null)
+                {
+                    OutputApplicationResults(applicationResults);
+                }
+                else if (output.Equals("json", StringComparison.OrdinalIgnoreCase))
                 {
                     OutputReplacementJson(replacements);
                 }
@@ -213,7 +241,8 @@ class Program
         string? projectFilter,
         string? fileFilter,
         string? folderFilter,
-        int maxParallelism)
+        int maxParallelism,
+        bool apply = false)
     {
         // Parse patterns
         var parser = new PatternParser();
@@ -241,12 +270,15 @@ class Program
             {
                 var result = match.ApplyReplacement(replacePatternAst);
                 var lineSpan = match.Location.GetLineSpan();
+                var span = match.Location.SourceSpan;
 
                 replacements.Add(new ReplacementOutput
                 {
                     FilePath = file,
                     Line = lineSpan.StartLinePosition.Line + 1,
                     Column = lineSpan.StartLinePosition.Character + 1,
+                    StartPosition = span.Start,
+                    EndPosition = span.End,
                     OriginalCode = result.OriginalText,
                     ReplacementCode = result.ReplacementText,
                     Placeholders = match.Placeholders
@@ -287,12 +319,15 @@ class Program
 
                 var result = patternMatch.ApplyReplacement(replacePatternAst);
                 var lineSpan = matchResult.Location.GetLineSpan();
+                var span = matchResult.Location.SourceSpan;
 
                 replacements.Add(new ReplacementOutput
                 {
                     FilePath = matchResult.FilePath,
                     Line = lineSpan.StartLinePosition.Line + 1,
                     Column = lineSpan.StartLinePosition.Character + 1,
+                    StartPosition = span.Start,
+                    EndPosition = span.End,
                     OriginalCode = result.OriginalText,
                     ReplacementCode = result.ReplacementText,
                     Placeholders = matchResult.Placeholders
@@ -351,6 +386,31 @@ class Program
                 }
             }
             Console.WriteLine();
+        }
+    }
+
+    static void OutputApplicationResults(List<ReplacementApplicationResult> results)
+    {
+        var totalApplied = results.Sum(r => r.ReplacementsApplied);
+        var totalErrors = results.Count(r => !r.Success);
+
+        Console.WriteLine($"Applied {totalApplied} replacement(s) to {results.Count(r => r.Success)} file(s)");
+        if (totalErrors > 0)
+        {
+            Console.WriteLine($"Encountered {totalErrors} error(s):");
+        }
+        Console.WriteLine();
+
+        foreach (var result in results)
+        {
+            if (result.Success)
+            {
+                Console.WriteLine($"✓ {result.FilePath}: {result.ReplacementsApplied} replacement(s) applied");
+            }
+            else
+            {
+                Console.WriteLine($"✗ {result.FilePath}: {result.Error}");
+            }
         }
     }
 
@@ -443,6 +503,8 @@ class ReplacementOutput
     public required string FilePath { get; init; }
     public int Line { get; init; }
     public int Column { get; init; }
+    public int StartPosition { get; init; }
+    public int EndPosition { get; init; }
     public required string OriginalCode { get; init; }
     public required string ReplacementCode { get; init; }
     public Dictionary<string, string> Placeholders { get; init; } = new();
